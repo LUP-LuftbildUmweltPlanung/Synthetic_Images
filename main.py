@@ -61,5 +61,10 @@ plt.show()
 
 cv2.imwrite(r'Example_Tree_Data/8bit/test_background_8bit_synth.tif', background)
 
-# notes:    add (basic) tree augmentations, add tree type counter, add min_distance for trees
+# notes:    add (basic) tree augmentations, add tree type counter
 #           update image storage to image path storage
+# functions:    add single tree (needs a somewhat randomized area around it, where no trees can be placed)
+#                   param: tree-area
+#               add tree cluster (trees need a smaller of limits area, so they are not inside each other)
+#                   param: tree-distance, tree-amount
+#               add fill function (places trees until all areas outside of tree-area contain a tree)
