@@ -6,12 +6,14 @@ trees = {0: 'ELA', 1: 'GES', 2: 'RER', 3: 'ROB', 4: 'SEI'}  # defines files, nee
 images = {}
 
 for idx in trees.keys():
+    # currently stores all images in memory
+    # should be upgraded to tore image paths instead
     path = r'Example_Tree_Data/8bit/' + trees[idx] + '_8bit.tif'
     img = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # loads 4-band image
-    images[idx] = img[:, :, :3]  # stores 3-band image in image dict
+    images[idx] = img[:, :, :]  # stores 3-band image in image dict
 
 path = r'Example_Tree_Data/8bit/test_background_8bit.tif'
-background = cv2.imread(path, cv2.IMREAD_UNCHANGED)[:, :, :3]  # loads 3-band version of background
+background = cv2.imread(path, cv2.IMREAD_UNCHANGED)[:, :, :]  # loads 3-band version of background
 
 limits = background.shape
 
@@ -57,4 +59,7 @@ for i in range(number_of_trees):
 plt.imshow(background)
 plt.show()
 
-# notes: add (basic) tree augmentations, add tree type counter, add min_distance for trees
+cv2.imwrite(r'Example_Tree_Data/8bit/test_background_8bit_synth.tif', background)
+
+# notes:    add (basic) tree augmentations, add tree type counter, add min_distance for trees
+#           update image storage to image path storage
