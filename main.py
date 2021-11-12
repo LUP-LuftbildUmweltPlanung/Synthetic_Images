@@ -1,31 +1,26 @@
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-trees = {0: 'ELA', 1: 'GES', 2: 'RER', 3: 'ROB', 4: 'SEI'}  # defines files, needs to be replaced with glob
-images = {}
+import synth_forest as forest
+from utils import load_image, save_image
 
-for idx in trees.keys():
-    # currently stores all images in memory
-    # should be upgraded to tore image paths instead
-    path = r'Example_Tree_Data/8bit/' + trees[idx] + '_8bit.tif'
-    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # loads 4-band image
-    images[idx] = img[:, :, :]  # stores 3-band image in image dict
-
-path = r'Example_Tree_Data/8bit/test_background_8bit.tif'
-background = cv2.imread(path, cv2.IMREAD_UNCHANGED)[:, :, :]  # loads 3-band version of background
-
-limits = background.shape
-
+# CONFIG #
+background_file = r'Example_Tree_Data/Background/test_background_8bit.tif'
+trees_path = r'Example_Tree_Data/8bit'
 number_of_trees = 100
+
+background, mask, blocked_area = forest.set_background(background_file)
+limits = background.shape
+trees = forest.get_trees(trees_path)
 
 for i in range(number_of_trees):
     # loop to add trees
-    x = np.random.choice(limits[0])  # x_postion for tree
+    x = np.random.choice(limits[0])  # x_position for tree
     y = np.random.choice(limits[1])  # y_position for tree
 
-    img_idx = np.random.choice(len(images))  # random tree
-    img = images[img_idx]
+    img_idx = np.random.choice(len(trees))  # random tree
+    img = load_image(trees[img_idx][0])
+
     img_shape = img.shape  # gets image shape
     img_center = (int(img_shape[0] / 2), int(img_shape[1] / 2))  # gets image center
 
@@ -59,7 +54,7 @@ for i in range(number_of_trees):
 plt.imshow(background)
 plt.show()
 
-cv2.imwrite(r'Example_Tree_Data/8bit/test_background_8bit_synth.tif', background)
+# save_image(r'Example_Tree_Data/8bit/test_background_8bit_synth.tif', background)
 
 # notes:    add (basic) tree augmentations, add tree type counter
 #           update image storage to image path storage
