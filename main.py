@@ -6,8 +6,9 @@ from utils import save_image
 # CONFIG START #
 background_file = r'Example_Tree_Data/Background/test_background_8bit.tif'
 trees_path = r'Example_Tree_Data/8bit'
-number_of_trees = 0
+number_of_trees = 10
 distance = 50
+save = False
 # CONFIG END #
 
 background, mask, free_area = forest.set_background(background_file)
@@ -32,10 +33,8 @@ plt.show()
 plt.imshow(mask, cmap='hot')
 plt.show()
 
-# plt.imshow(free_area * 255, cmap='gray', vmin=0, vmax=255)
-# plt.show()
-
-# save_image(r'Example_Tree_Data/8bit/test_background_8bit_synth.tif', background)
+if save:
+    save_image(r'Example_Tree_Data/8bit/test_background_8bit_synth.tif', background)
 
 # notes:    - cut out better trees
 #           - add blocked area for cluster (maybe draw circles around all pixels?)

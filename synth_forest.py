@@ -91,6 +91,18 @@ def place_tree(distance, trees, background, mask, free_area, type_to_number):
 
 
 def place_cluster(trees, background, mask, free_area, type_to_number, tree_amount=None, cluster_area=None):
+    """Creates a cluster of trees at a random point, updates the image mask (and free area not yet) respectively.
+    Based on either tree-amount or cluster-area.
+
+                Keyword arguments:
+                trees -- list containing tuples of type (tree_image_path, tree_type)
+                background -- array containing the image (N-dimensional)
+                mask -- array containing the image mask (1-dimensional)
+                free_area -- array containing 1 where trees can be placed (1-dimensional)
+                type_to_number -- dictionary mapping tree type to numerical label
+                tree_amount -- Amount of trees in cluster (default = None)
+                cluster_area -- Size of the area of the created cluster (default = None)
+        """
     if tree_amount is None and cluster_area is None:
         print('\nNo tree amount or cluster area has been defined. The tree cluster was not placed.')
 
@@ -111,7 +123,7 @@ def place_cluster(trees, background, mask, free_area, type_to_number, tree_amoun
 
     x_area, y_area, tree = set_area(x, y, tree, boundaries)  # sets image area, crops if necessary
 
-    background, mask = place_in_background(tree, tree_label, x_area, y_area, background, mask)
+    background, mask = place_in_background(tree, tree_label, x_area, y_area, background, mask)  # places image
 
     global tree_counter
     tree_counter += 1
@@ -128,20 +140,17 @@ def place_cluster(trees, background, mask, free_area, type_to_number, tree_amoun
             tree, tree_type = random_tree(trees)  # selects a tree at random from a list of trees
             tree_label = type_to_number[tree_type]  # converts tree_type to label
 
-            # TODO: redefine area and cluster mask for every loop
-            cluster_contact, tree_contact = contact_points(area, cluster_mask, tree)
+            x, y = contact_position(area, cluster_mask, tree)  # calculates the position required for the tree to
+            # contact the cluster at a random position
 
-            x = area[0] + cluster_contact[0] + tree.shape[0]//2 - tree_contact[0]
-            y = area[2] + cluster_contact[1] + tree.shape[1]//2 - tree_contact[1]
+            x_area, y_area, tree = set_area(x, y, tree, boundaries)  # sets image area, crops if necessary
 
-            x_area, y_area, tree = set_area(x, y, tree, boundaries)
-
-            background, mask = place_in_background(tree, tree_label, x_area, y_area, background, mask)
+            background, mask = place_in_background(tree, tree_label, x_area, y_area, background, mask)  # places image
 
             area = np.array([np.min([area[0], x_area[0]]), np.max([area[1], x_area[1]]),
-                             np.min([area[2], y_area[0]]), np.max([area[3], y_area[1]])])
+                             np.min([area[2], y_area[0]]), np.max([area[3], y_area[1]])])  # updates cluster area
 
-            cluster_mask = mask[area[0]:area[1], area[2]:area[3]] != 0
+            cluster_mask = mask[area[0]:area[1], area[2]:area[3]] != 0  # updates cluster mask
 
             tree_counter += 1
             if tree_type not in tree_type_counter.keys():
