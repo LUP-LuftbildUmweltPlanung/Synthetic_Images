@@ -1,5 +1,5 @@
 import numpy as np
-from utils import get_files, load_image
+from utils import get_files, load_image, select_random, set_area
 
 tree_counter = 0
 tree_type_counter = {}
@@ -72,50 +72,25 @@ def place_tree(distance, trees, background, mask, free_area, type_to_number):
     x = int(pos / free_area.shape[1])  # calculates true x_position for 2D position from 1D position
     y = int(pos % free_area.shape[1])  # calculates true y_position for 2D position from 1D position
 
-    tree_idx = np.random.choice(len(trees))  # selects random tree
-    tree = load_image(trees[tree_idx][0])  # gets image
-    tree_type = trees[tree_idx][1]  # gets tree type
+    tree, tree_type = select_random(trees)  # selects a tree at random from a list of trees
     tree_label = type_to_number[tree_type]  # converts tree_type to label
-
-    tree_shape = tree.shape  # gets image shape
-    tree_center = (int(tree_shape[0] / 2), int(tree_shape[1] / 2))  # gets image center
-
-    x_range = [x - tree_center[0],
-               x - tree_center[0] + tree_shape[0]]  # gets x_range according do image shape and x position
-    y_range = [y - tree_center[1],
-               y - tree_center[1] + tree_shape[1]]  # gets y_range according do image shape and y position
 
     limits = background.shape
 
-    if x_range[0] < 0:  # checks, if image is out of left bound
-        overlap = -1 * x_range[0]
-        tree = tree[overlap:]
-    elif x_range[1] > limits[0]:  # checks, if image is out of right bound
-        overlap = x_range[1] - limits[0]
-        tree = tree[:-overlap]
-
-    if y_range[0] < 0:  # checks, if image is out of upper bound
-        overlap = -1 * y_range[0]
-        tree = tree[:, overlap:]
-    elif y_range[1] > limits[1]:  # checks, if image is out of lower bound
-        overlap = y_range[1] - limits[1]
-        tree = tree[:, :-overlap]
+    x_area, y_area, tree = set_area(x, y, tree, limits)  # sets image area, crops if necessary
 
     tree_mask = tree != 0  # mask to only remove tree part of image
 
-    x_range = np.clip(x_range, 0, limits[0])  # clip x_range to image bounds
-    y_range = np.clip(y_range, 0, limits[1])  # clip y_range to image bounds
+    background[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask == 0  # empties tree area in background
+    background[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree  # adds tree into freshly deleted area
 
-    background[x_range[0]:x_range[1], y_range[0]:y_range[1]] *= tree_mask == 0  # empties tree area in background
-    background[x_range[0]:x_range[1], y_range[0]:y_range[1]] += tree  # adds tree into freshly deleted area
+    mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
+    mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * tree_label  # adds tree mask
 
-    mask[x_range[0]:x_range[1], y_range[0]:y_range[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
-    mask[x_range[0]:x_range[1], y_range[0]:y_range[1]] += tree_mask[:, :, 0] * tree_label  # adds tree mask
+    x_block_area = np.clip([x - distance, x + distance], 0, limits[0])  # calculates blocked area from distance
+    y_block_area = np.clip([y - distance, y + distance], 0, limits[1])
 
-    x_block_range = np.clip([x - distance, x + distance], 0, limits[0])  # calculates blocked area from distance
-    y_block_range = np.clip([y - distance, y + distance], 0, limits[1])
-
-    free_area[x_block_range[0]:x_block_range[1], y_block_range[0]:y_block_range[1]] = 0  # sets blocked area
+    free_area[x_block_area[0]:x_block_area[1], y_block_area[0]:y_block_area[1]] = 0  # sets blocked area
 
     global tree_counter
     tree_counter += 1
