@@ -1,6 +1,9 @@
 import numpy as np
 from utils import get_files, load_image
 
+tree_counter = 0
+tree_type_counter = {}
+
 
 def set_background(file_path, reset=True, bands=None):
     """Loads a image files as background. Unless specified, also provides a fresh label mask and blocked_area mask.
@@ -12,6 +15,8 @@ def set_background(file_path, reset=True, bands=None):
     """
     background = load_image(file_path, bands)
     if reset:
+        global tree_counter
+        tree_counter = 0
         mask = np.zeros_like(background[:, :, 0])
         free_area = np.ones_like(background[:, :, 0])
         return background, mask, free_area
@@ -41,8 +46,6 @@ def get_trees(files_path, file_type=None):
     tree_labels = np.arange(len(tree_types), dtype='uint8')
     type_to_number = dict(zip(tree_types, tree_labels))
     number_to_type = dict(zip(tree_labels, tree_types))
-    print(type_to_number)
-    print(number_to_type)
 
     print(f'Successfully loaded {len(trees)} tree images of type {file_type}.')
     return trees, type_to_number, number_to_type
@@ -60,7 +63,7 @@ def place_tree(distance, trees, background, mask, free_area, type_to_number):
             type_to_number -- dictionary mapping tree type to numerical label
     """
     if np.sum(free_area) == 0:
-        print('Image does not contain any free area anymore. No tree was placed.')
+        print('\nImage does not contain any free area anymore. No tree was placed.')
         return background, mask, free_area, 1
 
     area_likelihoods = free_area / np.sum(free_area != 0)  # calculates likelihood for each position
@@ -114,16 +117,35 @@ def place_tree(distance, trees, background, mask, free_area, type_to_number):
 
     free_area[x_block_range[0]:x_block_range[1], y_block_range[0]:y_block_range[1]] = 0  # sets blocked area
 
+    global tree_counter
+    tree_counter += 1
+
+    global tree_type_counter
+    if tree_type not in tree_type_counter.keys():
+        tree_type_counter[tree_type] = 0
+    tree_type_counter[tree_type] += 1
+
     return background, mask, free_area, 0
 
 
-def fill_with_trees(distance, trees, background, mask, free_area, type_to_number):
+def fill_with_trees(distance, trees, background, mask, free_area, type_to_number, verbose=False):
+    """Repeats the 'place_tree'-function until no more trees can be placed.
+
+                Keyword arguments (same as 'place_tree'):
+                distance -- distance in pixels to be blocked around each tree
+                trees -- list containing tuples of type (tree_image_path, tree_type)
+                background -- array containing the image (N-dimensional)
+                mask -- array containing the image mask (1-dimensional)
+                free_area -- array containing 1 where trees can be placed (1-dimensional)
+                type_to_number -- dictionary mapping tree type to numerical label
+    """
     fill = 0
     counter = 0
     while fill == 0:
         background, mask, free_area, fill = place_tree(distance, trees, background, mask, free_area, type_to_number)
-        counter += 1
-        if counter % 50 == 0:
+        if fill == 0:
+            counter += 1
+        if verbose and counter % 50 == 0:
             print(f'{counter} trees placed.')
 
-    print(f'Forest has been filled. A total of {counter} additional trees have been placed.')
+    print(f'\nForest has been filled. A total of {counter} additional trees have been placed.')
