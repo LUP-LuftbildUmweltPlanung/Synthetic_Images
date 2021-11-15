@@ -1,5 +1,4 @@
-import numpy as np
-from utils import get_files, load_image, select_random, set_area
+from utils import *
 
 tree_counter = 0
 tree_type_counter = {}
@@ -66,31 +65,53 @@ def place_tree(distance, trees, background, mask, free_area, type_to_number):
         print('\nImage does not contain any free area anymore. No tree was placed.')
         return background, mask, free_area, 1
 
-    area_likelihoods = free_area / np.sum(free_area != 0)  # calculates likelihood for each position
-    pos = np.random.choice(np.arange(free_area.size), p=area_likelihoods.flatten())  # selects position in 1D image
+    x, y = random_position(free_area)  # selects a random position in the image
 
-    x = int(pos / free_area.shape[1])  # calculates true x_position for 2D position from 1D position
-    y = int(pos % free_area.shape[1])  # calculates true y_position for 2D position from 1D position
-
-    tree, tree_type = select_random(trees)  # selects a tree at random from a list of trees
+    tree, tree_type = random_tree(trees)  # selects a tree at random from a list of trees
     tree_label = type_to_number[tree_type]  # converts tree_type to label
 
-    limits = background.shape
+    boundaries = background.shape
 
-    x_area, y_area, tree = set_area(x, y, tree, limits)  # sets image area, crops if necessary
+    x_area, y_area, tree = set_area(x, y, tree, boundaries)  # sets image area, crops if necessary
 
-    tree_mask = tree != 0  # mask to only remove tree part of image
+    background, mask = place_in_background(tree, tree_label, x_area, y_area, background, mask)
 
-    background[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask == 0  # empties tree area in background
-    background[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree  # adds tree into freshly deleted area
-
-    mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
-    mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * tree_label  # adds tree mask
-
-    x_block_area = np.clip([x - distance, x + distance], 0, limits[0])  # calculates blocked area from distance
-    y_block_area = np.clip([y - distance, y + distance], 0, limits[1])
+    x_block_area = np.clip([x - distance, x + distance], 0, boundaries[0])  # calculates blocked area from distance
+    y_block_area = np.clip([y - distance, y + distance], 0, boundaries[1])
 
     free_area[x_block_area[0]:x_block_area[1], y_block_area[0]:y_block_area[1]] = 0  # sets blocked area
+
+    global tree_counter, tree_type_counter
+    tree_counter += 1
+    if tree_type not in tree_type_counter.keys():
+        tree_type_counter[tree_type] = 0
+    tree_type_counter[tree_type] += 1
+
+    return background, mask, free_area, 0
+
+
+def place_cluster(trees, background, mask, free_area, type_to_number, tree_amount=None, cluster_area=None):
+    if tree_amount is None and cluster_area is None:
+        print('\nNo tree amount or cluster area has been defined. The tree cluster was not placed.')
+
+    elif tree_amount is not None and cluster_area is not None:
+        print('\nBoth tree amount and cluster area have been defined. '
+              'The cluster area will be ignored, and the tree amount while be used.')
+
+    if np.sum(free_area) == 0:
+        print('\nImage does not contain any free area anymore. The tree cluster was not placed.')
+        return background, mask, free_area, 1
+
+    x, y = random_position(free_area)  # selects a random position in the image
+
+    tree, tree_type = random_tree(trees)  # selects a tree at random from a list of trees
+    tree_label = type_to_number[tree_type]  # converts tree_type to label
+
+    boundaries = background.shape
+
+    x_area, y_area, tree = set_area(x, y, tree, boundaries)  # sets image area, crops if necessary
+
+    background, mask = place_in_background(tree, tree_label, x_area, y_area, background, mask)
 
     global tree_counter
     tree_counter += 1
@@ -100,7 +121,41 @@ def place_tree(distance, trees, background, mask, free_area, type_to_number):
         tree_type_counter[tree_type] = 0
     tree_type_counter[tree_type] += 1
 
-    return background, mask, free_area, 0
+    if tree_amount is not None:
+        area = np.concatenate([x_area, y_area])
+        cluster_mask = tree[:, :, 0] != 0
+        for i in range(tree_amount - 1):
+            tree, tree_type = random_tree(trees)  # selects a tree at random from a list of trees
+            tree_label = type_to_number[tree_type]  # converts tree_type to label
+
+            # TODO: redefine area and cluster mask for every loop
+            cluster_contact, tree_contact = contact_points(area, cluster_mask, tree)
+
+            x = area[0] + cluster_contact[0] + tree.shape[0]//2 - tree_contact[0]
+            y = area[2] + cluster_contact[1] + tree.shape[1]//2 - tree_contact[1]
+
+            x_area, y_area, tree = set_area(x, y, tree, boundaries)
+
+            background, mask = place_in_background(tree, tree_label, x_area, y_area, background, mask)
+
+            area = np.array([np.min([area[0], x_area[0]]), np.max([area[1], x_area[1]]),
+                             np.min([area[2], y_area[0]]), np.max([area[3], y_area[1]])])
+
+            cluster_mask = mask[area[0]:area[1], area[2]:area[3]] != 0
+
+            tree_counter += 1
+            if tree_type not in tree_type_counter.keys():
+                tree_type_counter[tree_type] = 0
+            tree_type_counter[tree_type] += 1
+
+        print(f'\nAdded a cluster containing {tree_amount} trees.')
+
+    else:
+        area = 0
+        while area < cluster_area:
+            pass
+
+    return background, mask, free_area
 
 
 def fill_with_trees(distance, trees, background, mask, free_area, type_to_number, verbose=False):

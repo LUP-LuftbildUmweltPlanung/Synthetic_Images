@@ -6,7 +6,7 @@ from utils import save_image
 # CONFIG START #
 background_file = r'Example_Tree_Data/Background/test_background_8bit.tif'
 trees_path = r'Example_Tree_Data/8bit'
-number_of_trees = 10
+number_of_trees = 0
 distance = 50
 # CONFIG END #
 
@@ -19,11 +19,12 @@ for i in range(number_of_trees):
     if full == 1:
         break
 
-distance = 10
+# distance = 10
 # forest.fill_with_trees(distance, trees, background, mask, free_area, type_to_number)
+forest.place_cluster(trees, background, mask, free_area, type_to_number, tree_amount=500)
 
 print(f'\nTotal number of trees placed: {forest.tree_counter}.')
-print(f'\nDistribution of tree types: {forest.tree_type_counter}.')
+print(f'Distribution of tree types: {forest.tree_type_counter}.')
 
 plt.imshow(background)
 plt.show()
@@ -36,8 +37,16 @@ plt.show()
 
 # save_image(r'Example_Tree_Data/8bit/test_background_8bit_synth.tif', background)
 
-# notes:    add (basic) tree augmentations, move useful parts of "place_tree" to utils
-# functions:    add tree cluster (trees need a smaller of limits area, so they are not inside each other)
-#                   param: tree-distance, tree-amount
+# notes:    - cut out better trees
+#           - add blocked area for cluster (maybe draw circles around all pixels?)
+#           - add cluster based on area function (count pixels)
+#           - add (basic) tree augmentations
+#           - add height to cluster function
+# functions:    ...
 #
-# issues:   if tree contains black pixels (value=0), mask contains holes accordingly
+# issues:   - clusters can run out of space with no safety measure
+#           - if tree contains black pixels (value=0), mask contains holes accordingly
+#           - cluster function moves trees from the side to the cluster like tetris --> creates holes
+#           - clusters create no blocked area
+#           - trees can still overlap with clustering, as contact is only checked on a single point
+#           - trees are simply stacked on top of each other, not considering height
