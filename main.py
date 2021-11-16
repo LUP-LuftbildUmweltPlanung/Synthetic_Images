@@ -11,12 +11,7 @@ distance = 50
 save = True
 # CONFIG END #
 
-for i in range(20):
-    background, mask, free_area = forest.set_background(background_file, augment=True)
-    plt.imshow(background)
-    plt.show()
-
-background, mask, free_area = forest.set_background(background_file, augment=True)
+background, mask, free_area = forest.set_background(background_file, augment=False)
 limits = background.shape
 trees, type_to_number, number_to_type = forest.get_trees(trees_path)
 
@@ -25,7 +20,7 @@ for i in range(number_of_trees):
     if full == 1:
         break
 
-distance = 20
+distance = 10
 forest.fill_with_trees(distance, trees, background, mask, free_area, type_to_number)
 # forest.place_cluster(trees, background, mask, free_area, type_to_number, tree_amount=500)
 
@@ -42,14 +37,14 @@ if save:
     save_image(r'Example_Tree_Data/Results/test_background_8bit_synth.tif', background, mask)
 
 # notes:    - cut out better trees
-#           - add blocked area for cluster (maybe draw circles around all pixels?)
-#           - add cluster based on area function (count pixels)
 #           - add height to cluster function
-# functions:    ...
+#           - count pixel per type
+#           - replace tree distance with random shape
+#           - set distance to random
+# functions:- new cluster function
+#               - create random shape
+#               - measure random shape size
+#               - resize to match input cluster size
+#               - fill with variable dist and random height trees
 #
-# issues:   - clusters can run out of space with no safety measure
-#           - if tree contains black pixels (value=0), mask contains holes accordingly
-#           - cluster function moves trees from the side to the cluster like tetris --> creates holes
-#           - clusters create no blocked area
-#           - trees can still overlap with clustering, as contact is only checked on a single point
-#           - trees are simply stacked on top of each other, not considering height
+# issues:   - if tree contains black pixels (value=0), mask contains holes accordingly

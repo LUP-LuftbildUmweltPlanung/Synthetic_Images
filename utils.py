@@ -66,7 +66,7 @@ def background_augmentation(background):
     transform = A.Compose([
         A.Flip(p=0.5),
         A.Equalize(p=0.5),
-        A.GaussNoise(p=0.5),
+        # A.GaussNoise(p=0.5),
         A.RandomBrightnessContrast(p=0.5)
     ])
     return transform(image=background)['image']
@@ -127,91 +127,3 @@ def place_in_background(tree, tree_label, x_area, y_area, background, mask):
     mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * tree_label  # adds tree mask
 
     return background, mask
-
-
-# Not really Utils, only moved here so synth_forest.py looks cleaner
-def contact_position(area, cluster_mask, tree):
-    """Randomly selects a contact point on the cluster and the tree and
-    calculates the center position required for the tree for these two points to match."""
-    side = np.random.choice(np.where(area > 0)[0])  # 0-left, 1-right, 2-up, 3-down
-    contact = False
-    if side == 0 or side == 1:
-        x_pos = -1 * side  # so 0 or -1
-        y_pos = np.random.choice(cluster_mask.shape[1])
-        half = y_pos > cluster_mask.shape[1] / 2  # False: left half, True: right half
-
-        while not contact:
-            if cluster_mask[x_pos, y_pos] != 0:
-                contact = True
-            else:
-                if x_pos >= 0:
-                    x_pos += 1
-                else:
-                    x_pos -= 1
-    else:
-        x_pos = np.random.choice(cluster_mask.shape[0])
-        y_pos = -1 * (side - 2)
-        half = x_pos > cluster_mask.shape[0] / 2  # False: upper half, True: lower half
-
-        while not contact:
-            if cluster_mask[x_pos, y_pos] != 0:
-                contact = True
-            else:
-                if y_pos >= 0:
-                    y_pos += 1
-                else:
-                    y_pos -= 1
-
-    if x_pos < 0:
-        x_pos = cluster_mask.shape[0] + x_pos
-
-    if y_pos < 0:
-        y_pos = cluster_mask.shape[1] + y_pos
-
-    cluster_contact = [x_pos, y_pos]
-
-    if side == 0 or 2:
-        tree_side = side + 1
-    else:
-        tree_side = side - 1
-
-    contact = False
-    if tree_side == 0 or tree_side == 1:
-        x_pos = -1 * tree_side
-        y_pos = np.random.choice(tree.shape[1] // 2)
-        y_pos = y_pos + y_pos * half
-
-        while not contact:
-            if tree[x_pos, y_pos, 0] != 0:
-                contact = True
-            else:
-                if x_pos >= 0:
-                    x_pos += 1
-                else:
-                    x_pos -= 1
-    else:
-        x_pos = np.random.choice(tree.shape[0] // 2)
-        y_pos = -1 * (tree_side - 2)
-        x_pos = x_pos + x_pos * half
-
-        while not contact:
-            if tree[x_pos, y_pos, 0] != 0:
-                contact = True
-            else:
-                if y_pos >= 0:
-                    y_pos += 1
-                else:
-                    y_pos -= 1
-
-    if x_pos < 0:
-        x_pos = tree.shape[0] + x_pos
-
-    if y_pos < 0:
-        y_pos = tree.shape[1] + y_pos
-
-    tree_contact = [x_pos, y_pos]
-
-    x = area[0] + cluster_contact[0] + tree.shape[0] // 2 - tree_contact[0]
-    y = area[2] + cluster_contact[1] + tree.shape[1] // 2 - tree_contact[1]
-
-    return x, y
