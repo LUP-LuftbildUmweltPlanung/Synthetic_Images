@@ -1,4 +1,5 @@
 from utils import *
+from bezier_shape import random_shape
 
 tree_counter = 0
 tree_type_counter = {}
@@ -52,7 +53,7 @@ def get_trees(files_path, file_type=None):
     return trees, type_to_number, number_to_type
 
 
-def place_tree(distance, trees, background, mask, free_area, type_to_number):
+def place_tree(distance, trees, background, mask, free_area, type_to_number, augment=True, fill=False):
     """Places a single tree in a given distance of all other trees, updates the image mask and free area respectively.
 
             Keyword arguments:
@@ -69,7 +70,7 @@ def place_tree(distance, trees, background, mask, free_area, type_to_number):
 
     x, y = random_position(free_area)  # selects a random position in the image
 
-    tree, tree_type = random_tree(trees, augment=False)  # selects a tree at random from a list of trees
+    tree, tree_type = random_tree(trees, augment)  # selects a tree at random from a list of trees
     tree_label = type_to_number[tree_type]  # converts tree_type to label
 
     boundaries = background.shape
@@ -78,10 +79,16 @@ def place_tree(distance, trees, background, mask, free_area, type_to_number):
 
     background, mask = place_in_background(tree, tree_label, x_area, y_area, background, mask)
 
-    x_block_area = np.clip([x - distance, x + distance], 0, boundaries[0])  # calculates blocked area from distance
-    y_block_area = np.clip([y - distance, y + distance], 0, boundaries[1])
+    if fill:
+        shape_type = 'fill'
+        distance = int(np.mean(tree.shape[:2])/1.4)
+    else:
+        shape_type = 'single_tree'
 
-    free_area[x_block_area[0]:x_block_area[1], y_block_area[0]:y_block_area[1]] = 0  # sets blocked area
+    block_shape = random_shape(distance*2, shape_type)
+    x_block_area, y_block_area, block_shape = set_area(x, y, block_shape, boundaries)
+
+    free_area[x_block_area[0]:x_block_area[1], y_block_area[0]:y_block_area[1]] *= block_shape == 0  # sets blocked area
 
     global tree_counter, tree_type_counter
     tree_counter += 1
@@ -106,7 +113,8 @@ def fill_with_trees(distance, trees, background, mask, free_area, type_to_number
     fill = 0
     counter = 0
     while fill == 0:
-        background, mask, free_area, fill = place_tree(distance, trees, background, mask, free_area, type_to_number)
+        background, mask, free_area, fill = \
+            place_tree(distance, trees, background, mask, free_area, type_to_number, fill=True)
         if fill == 0:
             counter += 1
         if verbose and counter % 50 == 0:

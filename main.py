@@ -11,16 +11,18 @@ distance = 50
 save = True
 # CONFIG END #
 
-background, mask, free_area = forest.set_background(background_file, augment=False)
+background, mask, free_area = forest.set_background(background_file)
 limits = background.shape
 trees, type_to_number, number_to_type = forest.get_trees(trees_path)
 
 for i in range(number_of_trees):
     background, mask, free_area, full = forest.place_tree(distance, trees, background, mask, free_area, type_to_number)
+    # plt.imshow(free_area, cmap='hot')
+    # plt.show()
     if full == 1:
         break
 
-distance = 10
+distance = 20
 forest.fill_with_trees(distance, trees, background, mask, free_area, type_to_number)
 # forest.place_cluster(trees, background, mask, free_area, type_to_number, tree_amount=500)
 
@@ -39,10 +41,8 @@ if save:
 # notes:    - cut out better trees
 #           - add height to cluster function
 #           - count pixel per type
-#           - replace tree distance with random shape
 #           - set distance to random
 # functions:- new cluster function
-#               - create random shape
 #               - measure random shape size
 #               - resize to match input cluster size
 #               - fill with variable dist and random height trees
