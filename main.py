@@ -8,10 +8,15 @@ background_file = r'Example_Tree_Data/Background/test_background_8bit.tif'
 trees_path = r'Example_Tree_Data/8bit'
 number_of_trees = 10
 distance = 50
-save = False
+save = True
 # CONFIG END #
 
-background, mask, free_area = forest.set_background(background_file)
+for i in range(20):
+    background, mask, free_area = forest.set_background(background_file, augment=True)
+    plt.imshow(background)
+    plt.show()
+
+background, mask, free_area = forest.set_background(background_file, augment=True)
 limits = background.shape
 trees, type_to_number, number_to_type = forest.get_trees(trees_path)
 
@@ -20,9 +25,9 @@ for i in range(number_of_trees):
     if full == 1:
         break
 
-# distance = 10
-# forest.fill_with_trees(distance, trees, background, mask, free_area, type_to_number)
-forest.place_cluster(trees, background, mask, free_area, type_to_number, tree_amount=500)
+distance = 20
+forest.fill_with_trees(distance, trees, background, mask, free_area, type_to_number)
+# forest.place_cluster(trees, background, mask, free_area, type_to_number, tree_amount=500)
 
 print(f'\nTotal number of trees placed: {forest.tree_counter}.')
 print(f'Distribution of tree types: {forest.tree_type_counter}.')
@@ -34,12 +39,11 @@ plt.imshow(mask, cmap='hot')
 plt.show()
 
 if save:
-    save_image(r'Example_Tree_Data/8bit/test_background_8bit_synth.tif', background)
+    save_image(r'Example_Tree_Data/Results/test_background_8bit_synth.tif', background, mask)
 
 # notes:    - cut out better trees
 #           - add blocked area for cluster (maybe draw circles around all pixels?)
 #           - add cluster based on area function (count pixels)
-#           - add (basic) tree augmentations
 #           - add height to cluster function
 # functions:    ...
 #

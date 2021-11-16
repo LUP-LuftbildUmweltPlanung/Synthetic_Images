@@ -2,6 +2,7 @@ import glob
 import os
 from pathlib import Path
 
+import albumentations as A
 import cv2
 import numpy as np
 
@@ -26,18 +27,49 @@ def load_image(path, bands=None):
         return image[:, :, :bands]
 
 
-def save_image(image, path):
+def save_image(path, image, mask):
     """Stores image in provided path."""
-    cv2.imwrite(path, image)
-    print('Image saved successfully.')
+    path = Path(path)
+    cv2.imwrite(str(path), image)
+    mask_path = str(path).rsplit('.', 1)[0] + '_mask.' + str(path).rsplit('.', 1)[1]
+    cv2.imwrite(mask_path, mask)
+    print('\nImage and mask saved successfully.')
 
 
-def random_tree(trees):
+def random_tree(trees, augment=False):
     """Selects and returns a random tree from a list containing tuples."""
     tree_idx = np.random.choice(len(trees))
     tree = load_image(trees[tree_idx][0])
     tree_type = trees[tree_idx][1]
+    if augment:
+        tree = tree_augmentation(tree)
     return tree, tree_type
+
+
+def tree_augmentation(tree):
+    """Performs image augmentations on a provided image.
+    Augmentations are: GridDistortion, Flip, Rotate, RandomScale."""
+    # (equalize, huesaturationvalue)
+    # (elastictransform, optical distortion maybe with positive values)
+    transform = A.Compose([
+        # A.RandomBrightnessContrast(p=0.3),
+        A.GridDistortion(p=0.3, distort_limit=(-0.1, 0.1),
+                         interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT),
+        A.Flip(p=0.5),
+        A.Rotate(p=1.0, interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT, limit=(-180, 180)),
+        A.RandomScale(p=0.6, interpolation=cv2.INTER_NEAREST, scale_limit=(-0.3, 0.3))
+    ])
+    return transform(image=tree)['image']
+
+
+def background_augmentation(background):
+    transform = A.Compose([
+        A.Flip(p=0.5),
+        A.Equalize(p=0.5),
+        A.GaussNoise(p=0.5),
+        A.RandomBrightnessContrast(p=0.5)
+    ])
+    return transform(image=background)['image']
 
 
 def set_area(x, y, tree, boundaries):

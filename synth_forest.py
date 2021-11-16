@@ -4,7 +4,7 @@ tree_counter = 0
 tree_type_counter = {}
 
 
-def set_background(file_path, reset=True, bands=None):
+def set_background(file_path, reset=True, augment=False, bands=None):
     """Loads a image files as background. Unless specified, also provides a fresh label mask and blocked_area mask.
 
         Keyword arguments:
@@ -13,6 +13,8 @@ def set_background(file_path, reset=True, bands=None):
         bands -- sets bands to specified value, leaves as is if None (default None)
     """
     background = load_image(file_path, bands)
+    if augment:
+        background = background_augmentation(background)
     if reset:
         global tree_counter
         tree_counter = 0
@@ -67,7 +69,7 @@ def place_tree(distance, trees, background, mask, free_area, type_to_number):
 
     x, y = random_position(free_area)  # selects a random position in the image
 
-    tree, tree_type = random_tree(trees)  # selects a tree at random from a list of trees
+    tree, tree_type = random_tree(trees, augment=True)  # selects a tree at random from a list of trees
     tree_label = type_to_number[tree_type]  # converts tree_type to label
 
     boundaries = background.shape
@@ -116,7 +118,7 @@ def place_cluster(trees, background, mask, free_area, type_to_number, tree_amoun
 
     x, y = random_position(free_area)  # selects a random position in the image
 
-    tree, tree_type = random_tree(trees)  # selects a tree at random from a list of trees
+    tree, tree_type = random_tree(trees, augment=True)  # selects a tree at random from a list of trees
     tree_label = type_to_number[tree_type]  # converts tree_type to label
 
     boundaries = background.shape
@@ -137,7 +139,7 @@ def place_cluster(trees, background, mask, free_area, type_to_number, tree_amoun
         area = np.concatenate([x_area, y_area])
         cluster_mask = tree[:, :, 0] != 0
         for i in range(tree_amount - 1):
-            tree, tree_type = random_tree(trees)  # selects a tree at random from a list of trees
+            tree, tree_type = random_tree(trees, augment=True)  # selects a tree at random from a list of trees
             tree_label = type_to_number[tree_type]  # converts tree_type to label
 
             x, y = contact_position(area, cluster_mask, tree)  # calculates the position required for the tree to
