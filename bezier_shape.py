@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 from scipy.special import binom
 from utils import fill_contours
 
@@ -102,7 +103,14 @@ def array_from_coordinates(x_coord, y_coord, size=100):
     return bezier_array
 
 
-def random_shape(size, shape_type, radius=0.4, edges=0.0):
+def random_shape(size, shape_type, radius=0.4):
+    """Returns an array containing a random, natural looking shape based on random points connected by bezier-curves.
+
+                Keyword arguments (same as 'place_tree'):
+                size -- height and width of the returned square array
+                shape_type -- defines shape-complexity (use: 'close', 'single_tree', 'cluster' with rising complexity)
+                radius -- effects radius of curve (between 0 and 1, default 0.4)
+    """
     if shape_type == 'cluster':
         points = 7
     elif shape_type == 'single_tree':
@@ -110,11 +118,12 @@ def random_shape(size, shape_type, radius=0.4, edges=0.0):
     elif shape_type == 'close':
         points = 3
     else:
-        print("Shape type not recognised. Type 'tree' will be used. "
-              "Please use either 'tree' for smooth shapes or 'cluster' for complicated shapes.")
+        warnings.warn("Warning: Shape type not recognised. Type 'close' will be used. "
+                      "Please use either 'close' for smooth shapes, single_tree for less smooth, "
+                      "or 'cluster' for complicated shapes.")
         points = 3
     array = get_random_points(n=points, scale=1)
-    x_coord, y_coord, _ = get_bezier_curve(array, detail=size*10, rad=radius, edgy=edges)
+    x_coord, y_coord, _ = get_bezier_curve(array, detail=size*10, rad=radius, edgy=0.0)
 
     bezier_img = array_from_coordinates(x_coord, y_coord, size=size)
 

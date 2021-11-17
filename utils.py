@@ -62,6 +62,8 @@ def tree_augmentation(tree):
 
 
 def background_augmentation(background):
+    """Performs image augmentations on a provided image.
+        Augmentations are: Flip."""
     transform = A.Compose([
         A.Flip(p=0.5),
         # A.Equalize(p=0.5),
@@ -132,6 +134,7 @@ def place_in_background(tree, tree_label, x_area, y_area, height, background, ma
 
 
 def fill_contours(arr):
+    """Fills a contour in a 1D array with ones."""
     return np.all([np.maximum.accumulate(arr, 1),
                    np.maximum.accumulate(arr[:, ::-1], 1)[:, ::-1],
                    np.maximum.accumulate(arr[::-1, :], 0)[::-1, :],
