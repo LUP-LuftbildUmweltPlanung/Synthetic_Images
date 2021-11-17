@@ -24,7 +24,8 @@ def set_background(file_path, provided_pixel_area, reset=True, augment=False, ba
         tree_counter = 0
         mask = np.zeros_like(background[:, :, 0])
         free_area = np.ones_like(background[:, :, 0])
-        return background, mask, free_area
+        height_mask = np.ones_like(background[:, :, 0], dtype='int32')
+        return background, mask, free_area, height_mask
     else:
         return background
 
@@ -56,7 +57,7 @@ def get_trees(files_path, file_type=None):
     return trees, type_to_number, number_to_type
 
 
-def place_tree(distance, trees, background, mask, free_area, type_to_number, augment=True, fill=False):
+def place_tree(distance, trees, background, mask, free_area, height_mask, type_to_number, augment=True, fill=False):
     """Places a single tree in a given distance of all other trees, updates the image mask and free area respectively.
 
             Keyword arguments:
@@ -74,14 +75,14 @@ def place_tree(distance, trees, background, mask, free_area, type_to_number, aug
 
     x, y = random_position(free_area)  # selects a random position in the image
 
-    tree, tree_type = random_tree(trees, augment)  # selects a tree at random from a list of trees
+    tree, tree_type, height = random_tree(trees, augment)  # selects a tree at random from a list of trees
     tree_label = type_to_number[tree_type]  # converts tree_type to label
 
     boundaries = background.shape
 
     x_area, y_area, tree = set_area(x, y, tree, boundaries)  # sets image area, crops if necessary
 
-    place_in_background(tree, tree_label, x_area, y_area, background, mask)
+    place_in_background(tree, tree_label, x_area, y_area, height, background, mask, height_mask)
 
     if fill:
         shape_type = 'fill'
@@ -103,7 +104,7 @@ def place_tree(distance, trees, background, mask, free_area, type_to_number, aug
     return 0
 
 
-def fill_with_trees(trees, background, mask, free_area, type_to_number, cluster=False, verbose=False):
+def fill_with_trees(trees, background, mask, free_area, height_mask, type_to_number, cluster=False, verbose=False):
     """Repeats the 'place_tree'-function until no more trees can be placed.
 
                 Keyword arguments (same as 'place_tree'):
@@ -118,7 +119,7 @@ def fill_with_trees(trees, background, mask, free_area, type_to_number, cluster=
     counter = 0
     while not full:
         full = \
-            place_tree(0, trees, background, mask, free_area, type_to_number, fill=True)
+            place_tree(0, trees, background, mask, free_area, height_mask, type_to_number, fill=True)
         if not full:
             counter += 1
         if verbose and counter % 50 == 0:
@@ -130,7 +131,7 @@ def fill_with_trees(trees, background, mask, free_area, type_to_number, cluster=
         print(f'\nForest has been filled. A total of {counter} additional trees have been placed.')
 
 
-def place_cluster(area, trees, background, mask, free_area, type_to_number, area_in_pixel=False):
+def place_cluster(area, trees, background, mask, free_area, height_mask, type_to_number, area_in_pixel=False):
     cluster_mask = random_shape(np.min([background.shape[0], background.shape[1]]), shape_type='cluster')
     cluster_area = np.sum(cluster_mask)
 
@@ -165,7 +166,7 @@ def place_cluster(area, trees, background, mask, free_area, type_to_number, area
 
     free_area[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= block_mask == 0
 
-    fill_with_trees(trees, background, mask, temporary_free_area, type_to_number, cluster=True)
+    fill_with_trees(trees, background, mask, temporary_free_area, height_mask, type_to_number, cluster=True)
 
 
 def tree_type_distribution(mask, number_to_type, background=True):

@@ -4,7 +4,6 @@ from pathlib import Path
 
 import albumentations as A
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -44,7 +43,8 @@ def random_tree(trees, augment=False):
     tree_type = trees[tree_idx][1]
     if augment:
         tree = tree_augmentation(tree)
-    return tree, tree_type
+    height = tree.shape[0] + tree.shape[1]  # Could probably be better
+    return tree, tree_type, height
 
 
 def tree_augmentation(tree):
@@ -115,15 +115,20 @@ def random_position(free_area):
     return x, y
 
 
-def place_in_background(tree, tree_label, x_area, y_area, background, mask):
+def place_in_background(tree, tree_label, x_area, y_area, height, background, mask, height_mask):
     """Places a single tree with the provided label at the provided position in both background and mask."""
-    tree_mask = fill_contours(tree != 0)  # mask to only remove tree part of image
+    tree_mask = tree != 0  # mask to only remove tree part of image
+    tree_mask[height_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] > height] = 0
+    tree_mask = fill_contours(tree_mask)
 
     background[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask == 0  # empties tree area in background
     background[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree  # adds tree into freshly deleted area
 
     mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
     mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * tree_label  # adds tree mask
+
+    height_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
+    height_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * height  # adds tree mask
 
 
 def fill_contours(arr):
