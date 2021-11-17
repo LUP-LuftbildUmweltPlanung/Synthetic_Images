@@ -4,6 +4,7 @@ from pathlib import Path
 
 import albumentations as A
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -49,8 +50,6 @@ def random_tree(trees, augment=False):
 def tree_augmentation(tree):
     """Performs image augmentations on a provided image.
     Augmentations are: GridDistortion, Flip, Rotate, RandomScale."""
-    # (equalize, huesaturationvalue)
-    # (elastictransform, optical distortion maybe with positive values)
     transform = A.Compose([
         # A.RandomBrightnessContrast(p=0.3),
         A.GridDistortion(p=0.3, distort_limit=(-0.1, 0.1),
@@ -118,10 +117,17 @@ def random_position(free_area):
 
 def place_in_background(tree, tree_label, x_area, y_area, background, mask):
     """Places a single tree with the provided label at the provided position in both background and mask."""
-    tree_mask = tree != 0  # mask to only remove tree part of image
+    tree_mask = fill_contours(tree != 0)  # mask to only remove tree part of image
 
     background[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask == 0  # empties tree area in background
     background[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree  # adds tree into freshly deleted area
 
     mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
     mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * tree_label  # adds tree mask
+
+
+def fill_contours(arr):
+    return np.all([np.maximum.accumulate(arr, 1),
+                   np.maximum.accumulate(arr[:, ::-1], 1)[:, ::-1],
+                   np.maximum.accumulate(arr[::-1, :], 0)[::-1, :],
+                   np.maximum.accumulate(arr, 0)], axis=0)

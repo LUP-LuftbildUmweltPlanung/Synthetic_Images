@@ -1,6 +1,6 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.special import binom
+from utils import fill_contours
 
 
 def bernstein(n, k, t):
@@ -102,13 +102,6 @@ def array_from_coordinates(x_coord, y_coord, size=100):
     return bezier_array
 
 
-def fill_contours_fixed(arr):
-    return np.all([np.maximum.accumulate(arr, 1),
-                   np.maximum.accumulate(arr[:, ::-1], 1)[:, ::-1],
-                   np.maximum.accumulate(arr[::-1, :], 0)[::-1, :],
-                   np.maximum.accumulate(arr, 0)], axis=0)
-
-
 def random_shape(size, shape_type, radius=0.4, edges=0.0):
     if shape_type == 'cluster':
         points = 7
@@ -125,4 +118,4 @@ def random_shape(size, shape_type, radius=0.4, edges=0.0):
 
     bezier_img = array_from_coordinates(x_coord, y_coord, size=size)
 
-    return fill_contours_fixed(bezier_img)
+    return fill_contours(bezier_img)

@@ -168,7 +168,7 @@ def place_cluster(area, trees, background, mask, free_area, type_to_number, area
     fill_with_trees(trees, background, mask, temporary_free_area, type_to_number, cluster=True)
 
 
-def tree_type_distribution(mask, number_to_type, background=False):
+def tree_type_distribution(mask, number_to_type, background=True):
     tree_type_area = {}
     area = 0
     for label in range(mask.max() + 1):

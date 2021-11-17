@@ -28,13 +28,16 @@ forest.place_cluster(10000, trees, background, mask, free_area, type_to_number)
 print(f'\nTotal number of trees placed: {forest.tree_counter}.')
 print(f'Distribution of tree types: {forest.tree_type_counter}.')
 
-print(f'Percentage: {forest.tree_type_distribution(mask, number_to_type, background=True)}.')
-print(f'Percentage without background: {forest.tree_type_distribution(mask, number_to_type)}.')
+print(f'Percentage: {forest.tree_type_distribution(mask, number_to_type)}.')
+print(f'Percentage without background: {forest.tree_type_distribution(mask, number_to_type, background=False)}.')
 
 plt.imshow(background)
 plt.show()
 
 plt.imshow(mask, cmap='hot')
+plt.show()
+
+plt.imshow(free_area, cmap='hot')
 plt.show()
 
 if save:
@@ -44,7 +47,7 @@ if save:
 #           - add height to cluster function
 #           - set distance to random
 #
-# functions: ...
+# functions: ---
 #
-# issues:   - if tree contains black pixels (value=0), mask contains holes accordingly
-#           - distance around tree only effects center pixel of new trees --> new large trees overlap anyway
+# issues:   - distance around tree only effects center pixel of new trees --> new large trees overlap anyway
+#           - clusters are placed at random, without considering free area
