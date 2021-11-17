@@ -107,7 +107,7 @@ def random_shape(size, shape_type, radius=0.4, edges=0.0):
         points = 7
     elif shape_type == 'single_tree':
         points = 5
-    elif shape_type == 'fill':
+    elif shape_type == 'close':
         points = 3
     else:
         print("Shape type not recognised. Type 'tree' will be used. "

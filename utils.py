@@ -64,9 +64,9 @@ def tree_augmentation(tree):
 def background_augmentation(background):
     transform = A.Compose([
         A.Flip(p=0.5),
-        A.Equalize(p=0.5),
+        # A.Equalize(p=0.5),
         # A.GaussNoise(p=0.5),
-        A.RandomBrightnessContrast(p=0.5)
+        # A.RandomBrightnessContrast(p=0.5)
     ])
     return transform(image=background)['image']
 
@@ -122,7 +122,7 @@ def place_in_background(tree, tree_label, x_area, y_area, height, background, ma
     tree_mask = fill_contours(tree_mask)
 
     background[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask == 0  # empties tree area in background
-    background[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree  # adds tree into freshly deleted area
+    background[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree * tree_mask  # adds tree into freshly deleted area
 
     mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
     mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * tree_label  # adds tree mask

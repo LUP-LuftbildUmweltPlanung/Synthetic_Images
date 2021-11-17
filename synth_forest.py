@@ -2,7 +2,7 @@ from utils import *
 from bezier_shape import random_shape
 from skimage.transform import rescale
 
-pixel_area = 0
+area_per_pixel = 0
 tree_counter = 0
 tree_type_counter = {}
 
@@ -19,8 +19,8 @@ def set_background(file_path, provided_pixel_area, reset=True, augment=False, ba
     if augment:
         background = background_augmentation(background)
     if reset:
-        global tree_counter, pixel_area
-        pixel_area = provided_pixel_area
+        global tree_counter, area_per_pixel
+        area_per_pixel = provided_pixel_area
         tree_counter = 0
         mask = np.zeros_like(background[:, :, 0])
         free_area = np.ones_like(background[:, :, 0])
@@ -57,7 +57,7 @@ def get_trees(files_path, file_type=None):
     return trees, type_to_number, number_to_type
 
 
-def place_tree(distance, trees, background, mask, free_area, height_mask, type_to_number, augment=True, fill=False):
+def place_tree(distance, trees, background, mask, free_area, height_mask, type_to_number, augment=True, verbose=False):
     """Places a single tree in a given distance of all other trees, updates the image mask and free area respectively.
 
             Keyword arguments:
@@ -68,15 +68,21 @@ def place_tree(distance, trees, background, mask, free_area, height_mask, type_t
             free_area -- array containing 1 where trees can be placed (1-dimensional)
             type_to_number -- dictionary mapping tree type to numerical label
     """
-    if np.sum(free_area) == 0:
-        if not fill:
+
+    tree, tree_type, height = random_tree(trees, augment)  # selects a tree at random from a list of trees
+    tree_label = type_to_number[tree_type]  # converts tree_type to label
+
+    # BUFFER, IN PROGRESS #
+    # kernel = np.ones((tree.shape[0], tree.shape[1]))
+    # free_area_with_buffer = np.int64(convolve2d(free_area == 0, kernel, mode='same') > 0)
+    # BUFFER, IN PROGRESS #
+
+    if np.sum(free_area) == 0:  # IF BUFFER REPLACE WITH FREE_AREA_WITH_BUFFER == 0
+        if verbose:
             print('\nImage does not contain any free area anymore. No tree was placed.')
         return 1
 
     x, y = random_position(free_area)  # selects a random position in the image
-
-    tree, tree_type, height = random_tree(trees, augment)  # selects a tree at random from a list of trees
-    tree_label = type_to_number[tree_type]  # converts tree_type to label
 
     boundaries = background.shape
 
@@ -84,9 +90,9 @@ def place_tree(distance, trees, background, mask, free_area, height_mask, type_t
 
     place_in_background(tree, tree_label, x_area, y_area, height, background, mask, height_mask)
 
-    if fill:
-        shape_type = 'fill'
-        distance = int(np.mean(tree.shape[:2])/1.4)
+    if distance == 0:
+        shape_type = 'close'
+        distance = int(np.mean(tree.shape[:2])/2)
     else:
         shape_type = 'single_tree'
 
@@ -104,7 +110,8 @@ def place_tree(distance, trees, background, mask, free_area, height_mask, type_t
     return 0
 
 
-def fill_with_trees(trees, background, mask, free_area, height_mask, type_to_number, cluster=False, verbose=False):
+def fill_with_trees(distance, trees, background, mask, free_area, height_mask, type_to_number, cluster=False,
+                    single_trees=True, verbose=False):
     """Repeats the 'place_tree'-function until no more trees can be placed.
 
                 Keyword arguments (same as 'place_tree'):
@@ -115,11 +122,16 @@ def fill_with_trees(trees, background, mask, free_area, height_mask, type_to_num
                 free_area -- array containing 1 where trees can be placed (1-dimensional)
                 type_to_number -- dictionary mapping tree type to numerical label
     """
+    distance = int(distance / np.sqrt(area_per_pixel))
+
+    if not single_trees:
+        distance = 0
+
     full = False
     counter = 0
     while not full:
         full = \
-            place_tree(0, trees, background, mask, free_area, height_mask, type_to_number, fill=True)
+            place_tree(distance, trees, background, mask, free_area, height_mask, type_to_number)
         if not full:
             counter += 1
         if verbose and counter % 50 == 0:
@@ -136,10 +148,11 @@ def place_cluster(area, trees, background, mask, free_area, height_mask, type_to
     cluster_area = np.sum(cluster_mask)
 
     if not area_in_pixel:
-        area = int(area / pixel_area)
+        area = int(area / area_per_pixel)
 
     if cluster_area < area:
-        print(f'Area to large to form a cluster in image. Area will be reduced to {int(cluster_area * pixel_area)}m².')
+        print('Area to large to form a cluster in image. '
+              f'Area will be reduced to {int(cluster_area * area_per_pixel)}m².')
         area = cluster_area
 
     area_ratio = np.sqrt(area / cluster_area)
@@ -166,7 +179,7 @@ def place_cluster(area, trees, background, mask, free_area, height_mask, type_to
 
     free_area[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= block_mask == 0
 
-    fill_with_trees(trees, background, mask, temporary_free_area, height_mask, type_to_number, cluster=True)
+    fill_with_trees(0, trees, background, mask, temporary_free_area, height_mask, type_to_number, cluster=True)
 
 
 def tree_type_distribution(mask, number_to_type, background=True):
@@ -180,7 +193,7 @@ def tree_type_distribution(mask, number_to_type, background=True):
         else:
             tree_type_area[tree_type] = label_area
             area += label_area
-    for label in tree_type_area.keys():
+    for label in tree_type_area:
         tree_type_area[label] = np.round(tree_type_area[label] / area, 2)
 
     return tree_type_area
