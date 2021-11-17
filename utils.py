@@ -93,14 +93,14 @@ def crop_image(x_area, y_area, tree, boundaries):
     if x_area[0] < 0:  # checks, if image is out of left bound
         overlap = -1 * x_area[0]
         tree = tree[overlap:]
-    elif x_area[1] > boundaries[0]:  # checks, if image is out of right bound
+    if x_area[1] > boundaries[0]:  # checks, if image is out of right bound
         overlap = x_area[1] - boundaries[0]
         tree = tree[:-overlap]
 
     if y_area[0] < 0:  # checks, if image is out of upper bound
         overlap = -1 * y_area[0]
         tree = tree[:, overlap:]
-    elif y_area[1] > boundaries[1]:  # checks, if image is out of lower bound
+    if y_area[1] > boundaries[1]:  # checks, if image is out of lower bound
         overlap = y_area[1] - boundaries[1]
         tree = tree[:, :-overlap]
     return tree
@@ -125,5 +125,3 @@ def place_in_background(tree, tree_label, x_area, y_area, background, mask):
 
     mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
     mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * tree_label  # adds tree mask
-
-    return background, mask
