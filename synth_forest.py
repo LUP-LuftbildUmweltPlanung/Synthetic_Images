@@ -3,12 +3,19 @@ import matplotlib.pyplot as plt
 
 from utils import *
 from bezier_shape import random_shape
-from skimage.transform import rescale
+from skimage.transform import rescale, downscale_local_mean
 
 area_per_pixel = 0
 tree_counter = 0
 tree_type_counter = {}
 verbose = False
+background = np.empty(0)
+mask = np.empty(0)
+free_area = np.empty(0)
+height_mask = np.empty(0)
+type_to_number = {}
+number_to_type = {}
+trees = []
 
 
 def set_background(file_path, pixel_area=1, augment=False, bands=None, reset=True):
@@ -21,6 +28,7 @@ def set_background(file_path, pixel_area=1, augment=False, bands=None, reset=Tru
         bands -- sets bands to specified value, leaves as is if None (default None)
         reset -- resets mask and blocked_area (default True)
     """
+    global background, mask, free_area, height_mask
     background = load_image(file_path, bands)
     if augment:
         background = background_augmentation(background)
@@ -31,9 +39,9 @@ def set_background(file_path, pixel_area=1, augment=False, bands=None, reset=Tru
         mask = np.zeros_like(background[:, :, 0])
         free_area = np.ones_like(background[:, :, 0])
         height_mask = np.ones_like(background[:, :, 0], dtype='int32')
-        return background, mask, free_area, height_mask
+        return mask, free_area, height_mask
     else:
-        return background
+        return 0
 
 
 def get_trees(files_path, file_type=None):
@@ -44,10 +52,10 @@ def get_trees(files_path, file_type=None):
             files_path -- path to folder containing tree image files
             file_type -- type of tree image files, defaults to 'tif' (default None)
     """
+    global type_to_number, number_to_type, trees
     if file_type is None:
         file_type = 'tif'
     files = get_files(files_path, file_type)
-    trees = []
     tree_types = ['background']
     for file in files:
         tree_type = str(file).rsplit('\\', 1)[1].rsplit('_', 1)[0]
@@ -64,7 +72,7 @@ def get_trees(files_path, file_type=None):
     return trees, type_to_number, number_to_type
 
 
-def place_tree(distance, trees, background, mask, free_area, height_mask, type_to_number, augment=True):
+def place_tree(distance, area=None, augment=True, cluster=False, tight=False, kernel_ratio=None):
     """Places a single tree in a given distance of all other trees, updates the image mask and free area respectively.
 
             Keyword arguments:
@@ -77,28 +85,60 @@ def place_tree(distance, trees, background, mask, free_area, height_mask, type_t
             type_to_number -- dictionary mapping tree type to numerical label
             augment -- if the tree image should be augmented (default True)
     """
+    global background, mask, height_mask
+    if area is None:
+        area = free_area
+    if kernel_ratio is None:
+        kernel_ratio = 1
+    else:
+        kernel_ratio = int(np.round(1/kernel_ratio, 0))
 
     tree, tree_type, height = random_tree(trees, augment)  # selects a tree at random from a list of trees
     tree_label = type_to_number[tree_type]  # converts tree_type to label
 
-    # BUFFER, IN PROGRESS #
-    # from scipy.signal import convolve2d
-    # kernel = np.int64(tree[:, :, 0] != 0)
-    # free_area_with_buffer = np.int64(convolve2d(free_area == 0, kernel, mode='same') > 0)
-    # BUFFER, IN PROGRESS #
+    place = False
+    while not place:
+        # BUFFER, IN PROGRESS #
+        from scipy.signal import convolve2d
+        kernel = np.int64(fill_contours(tree[:, :, 0] != 0))
+        kernel = np.int64(downscale_local_mean(kernel, (kernel_ratio, kernel_ratio)) != 0)
+        area_with_buffer = np.int64(convolve2d(area == 0, kernel, mode='same') > 0) == 0
+        # BUFFER, IN PROGRESS #
 
-    if np.sum(free_area) == 0:  # IF BUFFER REPLACE WITH FREE_AREA_WITH_BUFFER == 0
-        # if verbose:
-        #    print('\nImage does not contain any free area anymore. No tree was placed.')
-        return 1
+        if np.sum(area_with_buffer) == 0:  # IF BUFFER REPLACE WITH FREE_AREA_WITH_BUFFER
+            # if verbose:
+            #    print('\nImage does not contain any free area anymore. No tree was placed.')
+            if cluster and kernel_ratio < 5:
+                kernel_ratio += 1
+                tight = False
+            else:
+                return 1
+        else:
+            x, y = random_position(area_with_buffer)
+            place = True
 
-    x, y = random_position(free_area)  # selects a random position in the image
+    # buffer #
+    if tight:
+        direction = np.random.choice(4)
+        contact = False
+        pos = [x, y]
+        while not contact:
+            pos[int(direction/2)] += direction % 2 * -2 + 1
+            if pos[0] > background.shape[0] or pos[1] > background.shape[1] or pos[0] < 0 or pos[1] < 0:
+                x = np.clip(pos[0], 0, background.shape[0])
+                y = np.clip(pos[1], 0, background.shape[1])
+                break
+            if area_with_buffer[x, y] == 0:
+                contact = True
+            else:
+                x, y = pos
+    # Buffer #
 
     boundaries = background.shape
 
     x_area, y_area, tree = set_area(x, y, tree, boundaries)  # sets image area, crops if necessary
 
-    place_in_background(tree, tree_label, x_area, y_area, height, background, mask, height_mask)
+    background, mask, height_mask = place_in_background(tree, tree_label, x_area, y_area, height, background, mask, height_mask)
 
     if distance == 0:
         shape_type = 'close'
@@ -106,10 +146,13 @@ def place_tree(distance, trees, background, mask, free_area, height_mask, type_t
     else:
         shape_type = 'single_tree'
 
-    block_mask = random_shape(distance*2, shape_type)
+    if cluster:
+        block_mask = fill_contours(tree[:, :, 0] != 0)
+    else:
+        block_mask = random_shape(distance * 2, shape_type)
     x_block_area, y_block_area, block_mask = set_area(x, y, block_mask, boundaries)
 
-    free_area[x_block_area[0]:x_block_area[1], y_block_area[0]:y_block_area[1]] *= block_mask == 0  # sets blocked area
+    area[x_block_area[0]:x_block_area[1], y_block_area[0]:y_block_area[1]] *= block_mask == 0  # sets blocked area
 
     global tree_counter, tree_type_counter
     tree_counter += 1
@@ -120,8 +163,7 @@ def place_tree(distance, trees, background, mask, free_area, height_mask, type_t
     return 0
 
 
-def fill_with_trees(distance, trees, background, mask, free_area, height_mask, type_to_number, cluster=False,
-                    fixed_distance=True):
+def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True):
     """Repeats the 'place_tree'-function until no more trees can be placed.
 
                 Keyword arguments (same as 'place_tree'):
@@ -144,7 +186,7 @@ def fill_with_trees(distance, trees, background, mask, free_area, height_mask, t
     counter = 0
     while not full:
         full = \
-            place_tree(distance, trees, background, mask, free_area, height_mask, type_to_number)
+            place_tree(distance, area, cluster=cluster, tight=cluster)
         if not full:
             counter += 1
 
@@ -154,8 +196,7 @@ def fill_with_trees(distance, trees, background, mask, free_area, height_mask, t
         print(f'\nForest has been filled. A total of {counter} additional trees have been placed.')
 
 
-def place_cluster(area, trees, background, mask, free_area, height_mask,
-                  type_to_number, area_in_pixel=False):
+def place_cluster(area, area_in_pixel=False):
     """Creates a random shape of size 'area'. This shape is then filled with trees using the fill_trees function.
 
                 Keyword arguments (same as 'place_tree'):
@@ -168,6 +209,7 @@ def place_cluster(area, trees, background, mask, free_area, height_mask,
                 type_to_number -- dictionary mapping tree type to numerical label
                 area_in_pixel -- if area is provided in pixel or in m² (default False)
     """
+    global background, free_area
     cluster_mask = random_shape(np.min([background.shape[0], background.shape[1]]), shape_type='cluster')
     cluster_area = np.sum(cluster_mask)
 
@@ -197,18 +239,22 @@ def place_cluster(area, trees, background, mask, free_area, height_mask,
 
     x_area, y_area, cluster_mask = set_area(x, y, cluster_mask, boundaries)
 
-    temporary_free_area = np.zeros_like(mask)
-    temporary_free_area[x_area[0]:x_area[1], y_area[0]:y_area[1]] = cluster_mask
+    temporary_area = np.zeros_like(free_area)
+    temporary_area[x_area[0]:x_area[1], y_area[0]:y_area[1]] = cluster_mask
 
     x_area, y_area, block_mask = set_area(x, y, block_mask, boundaries)
 
+    background[:, :, :3] = np.multiply(background.astype('float64')[:, :, :3],
+                                       np.expand_dims(temporary_area, axis=2)*0.3
+                                       + np.int64(np.expand_dims(temporary_area, axis=2) == 0))
+    background = np.round(background, 0).astype('uint8')
+
+    fill_with_trees(0, temporary_area, cluster=True)
+
     free_area[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= block_mask == 0
 
-    fill_with_trees(0, trees, background, mask, temporary_free_area,
-                    height_mask, type_to_number, cluster=True)
 
-
-def tree_type_distribution(mask, number_to_type, background=True):
+def tree_type_distribution(back=True):
     """Calculates distribution of class pixels in the image.
 
                 Keyword arguments (same as 'place_tree'):
@@ -218,10 +264,10 @@ def tree_type_distribution(mask, number_to_type, background=True):
     """
     tree_type_area = {}
     area = 0
-    for label in range(mask.max() + 1):
+    for label in range(np.max(mask) + 1):
         label_area = np.sum(mask == label)
         tree_type = number_to_type[label]
-        if not background and tree_type == 'background':
+        if not back and tree_type == 'background':
             pass
         else:
             tree_type_area[tree_type] = label_area
@@ -232,10 +278,9 @@ def tree_type_distribution(mask, number_to_type, background=True):
     return tree_type_area
 
 
-def visualize(background=None, mask=None, height_mask=None, free_area=None):
+def visualize():
     """Visualizes background, mask, height_mask, free_area if provided."""
-    if background is None and mask is None and height_mask is None and free_area is None:
-        warnings.warn('Warning: No data provided. Visualization cancelled.')
+    global background, mask, free_area, height_mask
     if background is not None:
         plt.imshow(background)
         plt.title('Synthetic image')
@@ -250,13 +295,13 @@ def visualize(background=None, mask=None, height_mask=None, free_area=None):
         plt.show()
     if free_area is not None:
         plt.imshow(free_area, cmap='Greys_r')
-        plt.title('Height map')
+        plt.title('Free area')
         plt.show()
 
 
-def detailed_results(mask, number_to_type):
+def detailed_results():
     """Prints numbers of trees as well as distribution."""
     print(f'\nTotal number of trees placed: {tree_counter}.')
     print(f'Distribution of tree types: {tree_type_counter}.')
-    print(f'Percentage: {tree_type_distribution(mask, number_to_type)}.')
-    print(f'Percentage without background: {tree_type_distribution(mask, number_to_type, background=False)}.')
+    print(f'Percentage: {tree_type_distribution()}.')
+    print(f'Percentage without background: {tree_type_distribution(back=False)}.')

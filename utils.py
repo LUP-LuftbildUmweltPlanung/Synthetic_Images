@@ -132,6 +132,8 @@ def place_in_background(tree, tree_label, x_area, y_area, height, background, ma
     height_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
     height_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * height  # adds tree mask
 
+    return background, mask, height_mask
+
 
 def fill_contours(arr):
     """Fills a contour in a 1D array with ones."""
