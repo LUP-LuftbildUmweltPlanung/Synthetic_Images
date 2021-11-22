@@ -22,11 +22,10 @@ forest.visualize()
 forest.detailed_results()
 
 if save:
-    save_image(r'Example_Tree_Data/Results/test_background_8bit_synth.tif', forest.background, mask)
+    save_image(r'Example_Tree_Data/Results/test_background_8bit_synth.tif', forest.background, forest.mask)
 
 # notes:    - update documentation
 #           - cut out better trees
-#           - randomize distance for single trees further
 #           - add warnings: warnings.warn("Warning......message")
 #           - add verbosity levels (None, basic, relevant, detailed)
 #

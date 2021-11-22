@@ -87,9 +87,8 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
     """
     global background, mask, height_mask
     if distance != 0:
-        rnd_distance = np.random.normal(distance, distance/5)
-        distance = int(np.max([distance/2, rnd_distance / np.sqrt(area_per_pixel)]))
-        print(rnd_distance)
+        rnd_distance = np.random.normal(distance, distance)
+        distance = int(np.clip(rnd_distance, distance*0.5, distance*1.5) / np.sqrt(area_per_pixel))
     if area is None:
         area = free_area
     if kernel_ratio is None:
@@ -228,8 +227,8 @@ def place_cluster(area, area_in_pixel=False):
 
     area_ratio = np.sqrt(area / cluster_area)
 
-    block_mask = rescale(cluster_mask, area_ratio*1.5)
     cluster_mask = rescale(cluster_mask, area_ratio)
+    block_mask = rescale(cluster_mask, 1.3)
 
     boundaries = background.shape
 
