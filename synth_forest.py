@@ -257,6 +257,20 @@ def place_cluster(area, area_in_pixel=False):
     free_area[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= block_mask == 0
 
 
+def dense_forest():
+    global background
+    background[:, :, :3] = np.multiply(background.astype('float64')[:, :, :3], 0.3)
+    background = np.round(background, 0).astype('uint8')
+    fill_with_trees(0, cluster=True)
+
+
+def dense_edge():
+    # create larger cluster
+    # shift in random direction
+    # fill like normal cluster
+    pass
+
+
 def tree_type_distribution(back=True):
     """Calculates distribution of class pixels in the image.
 
