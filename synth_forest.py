@@ -86,6 +86,10 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
             augment -- if the tree image should be augmented (default True)
     """
     global background, mask, height_mask
+    if distance != 0:
+        rnd_distance = np.random.normal(distance, distance/5)
+        distance = int(np.max([distance/2, rnd_distance / np.sqrt(area_per_pixel)]))
+        print(rnd_distance)
     if area is None:
         area = free_area
     if kernel_ratio is None:
@@ -138,7 +142,8 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
 
     x_area, y_area, tree = set_area(x, y, tree, boundaries)  # sets image area, crops if necessary
 
-    background, mask, height_mask = place_in_background(tree, tree_label, x_area, y_area, height, background, mask, height_mask)
+    background, mask, height_mask = place_in_background(tree, tree_label, x_area, y_area, height,
+                                                        background, mask, height_mask)
 
     if distance == 0:
         shape_type = 'close'
@@ -150,6 +155,7 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
         block_mask = fill_contours(tree[:, :, 0] != 0)
     else:
         block_mask = random_shape(distance * 2, shape_type)
+
     x_block_area, y_block_area, block_mask = set_area(x, y, block_mask, boundaries)
 
     area[x_block_area[0]:x_block_area[1], y_block_area[0]:y_block_area[1]] *= block_mask == 0  # sets blocked area
@@ -177,8 +183,6 @@ def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True):
                 cluster -- if a cluster or a forest is being filled (default False)
                 fixed_distance -- if distance should be fixed to distance value or depending on tree size (default True)
     """
-    distance = int(distance / np.sqrt(area_per_pixel))
-
     if not fixed_distance:
         distance = 0
 

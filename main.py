@@ -14,7 +14,7 @@ forest.verbose = verbose
 forest.set_background(background_file, area_per_pixel, augment=True)
 forest.get_trees(trees_path)
 
-cluster_area = 10000
+cluster_area = 1000
 single_tree_distance = 10
 forest.place_cluster(cluster_area)
 forest.fill_with_trees(single_tree_distance)
@@ -24,7 +24,7 @@ forest.detailed_results()
 if save:
     save_image(r'Example_Tree_Data/Results/test_background_8bit_synth.tif', forest.background, mask)
 
-# notes:    - make all important variables global
+# notes:    - update documentation
 #           - cut out better trees
 #           - randomize distance for single trees further
 #           - add warnings: warnings.warn("Warning......message")
@@ -32,5 +32,4 @@ if save:
 #
 # functions: - overarching config --> creation of hundreds of pictures
 #
-# issues:   - distance around tree only effects center pixel of new trees --> new large trees overlap anyway
-#           - clusters are placed at random, without considering free area
+# issues:   - clusters are placed at random, without considering free area
