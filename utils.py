@@ -27,13 +27,15 @@ def load_image(path, bands=None):
         return image[:, :, :bands]
 
 
-def save_image(path, image, mask):
+def save_image(path, image, mask, verbose=False):
     """Stores image in provided path."""
+    Path(str(path).rsplit('\\', 1)[0].rsplit('/', 1)[0]).mkdir(parents=True, exist_ok=True)
     path = Path(path)
     cv2.imwrite(str(path), image)
     mask_path = str(path).rsplit('.', 1)[0] + '_mask.' + str(path).rsplit('.', 1)[1]
     cv2.imwrite(mask_path, mask)
-    print('\nImage and mask saved successfully.')
+    if verbose:
+        print('\nImage and mask saved successfully.')
 
 
 def random_tree(trees, augment=False):
