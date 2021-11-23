@@ -14,11 +14,12 @@ forest.verbose = verbose
 forest.set_background(background_file, area_per_pixel, augment=True)
 forest.get_trees(trees_path)
 
-cluster_area = 10000
+cluster_area = 1000
 single_tree_distance = 10
 #forest.place_cluster(cluster_area)
-#forest.fill_with_trees(single_tree_distance)
-forest.dense_forest()
+#forest.dense_forest()
+forest.forest_edge()
+forest.fill_with_trees(single_tree_distance)
 forest.visualize()
 forest.detailed_results()
 

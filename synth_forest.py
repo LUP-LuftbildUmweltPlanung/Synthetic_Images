@@ -1,9 +1,11 @@
 import warnings
-import matplotlib.pyplot as plt
 
-from utils import *
+import matplotlib.pyplot as plt
+from scipy.signal import convolve2d
+from skimage.transform import rescale, resize, downscale_local_mean
+
 from bezier_shape import random_shape
-from skimage.transform import rescale, downscale_local_mean
+from utils import *
 
 area_per_pixel = 0
 tree_counter = 0
@@ -58,7 +60,7 @@ def get_trees(files_path, file_type=None):
     files = get_files(files_path, file_type)
     tree_types = ['background']
     for file in files:
-        tree_type = str(file).rsplit('\\', 1)[1].rsplit('_', 1)[0]
+        tree_type = str(file).rsplit('\\', 1)[-1].rsplit('/', 1)[-1].rsplit('_', 1)[0]
         trees.append((file, tree_type))
         if tree_type not in tree_types:
             tree_types.append(tree_type)
@@ -88,13 +90,13 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
     global background, mask, height_mask
     if distance != 0:
         rnd_distance = np.random.normal(distance, distance)
-        distance = int(np.clip(rnd_distance, distance*0.5, distance*1.5) / np.sqrt(area_per_pixel))
+        distance = int(np.clip(rnd_distance, distance * 0.5, distance * 1.5) / np.sqrt(area_per_pixel))
     if area is None:
         area = free_area
     if kernel_ratio is None:
         kernel_ratio = 1
     else:
-        kernel_ratio = int(np.round(1/kernel_ratio, 0))
+        kernel_ratio = int(np.round(1 / kernel_ratio, 0))
 
     tree, tree_type, height = random_tree(trees, augment)  # selects a tree at random from a list of trees
     tree_label = type_to_number[tree_type]  # converts tree_type to label
@@ -102,7 +104,6 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
     place = False
     while not place:
         # BUFFER, IN PROGRESS #
-        from scipy.signal import convolve2d
         kernel = np.int64(fill_contours(tree[:, :, 0] != 0))
         kernel = np.int64(downscale_local_mean(kernel, (kernel_ratio, kernel_ratio)) != 0)
         area_with_buffer = np.int64(convolve2d(area == 0, kernel, mode='same') > 0) == 0
@@ -126,7 +127,7 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
         contact = False
         pos = [x, y]
         while not contact:
-            pos[int(direction/2)] += direction % 2 * -2 + 1
+            pos[int(direction / 2)] += direction % 2 * -2 + 1
             if pos[0] > background.shape[0] or pos[1] > background.shape[1] or pos[0] < 0 or pos[1] < 0:
                 x = np.clip(pos[0], 0, background.shape[0])
                 y = np.clip(pos[1], 0, background.shape[1])
@@ -146,7 +147,7 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
 
     if distance == 0:
         shape_type = 'close'
-        distance = int(np.mean(tree.shape[:2])/2)
+        distance = int(np.mean(tree.shape[:2]) / 2)
     else:
         shape_type = 'single_tree'
 
@@ -168,7 +169,12 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
     return 0
 
 
-def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True):
+# def multi_place_tree(data):
+#     distance, area, cluster = data
+#     return place_tree(distance, area, cluster=cluster, tight=cluster)
+
+
+def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True, multi=False):
     """Repeats the 'place_tree'-function until no more trees can be placed.
 
                 Keyword arguments (same as 'place_tree'):
@@ -187,11 +193,31 @@ def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True):
 
     full = False
     counter = 0
-    while not full:
-        full = \
-            place_tree(distance, area, cluster=cluster, tight=cluster)
-        if not full:
-            counter += 1
+    if multi:
+        warnings.warn("Multiprocessing not yet functional, and should therefore not be used. "
+                      "The function will be handled as if multiprocessing was disabled.")
+        # cpus = cpu_count()-1
+        # pool = Pool(processes=cpus)
+        # while not full:
+        #     full = pool.map(multi_place_tree,
+        #     [(distance, area, cluster),(distance, area, cluster),(distance, area, cluster),
+        #     (distance, area, cluster),(distance, area, cluster),(distance, area, cluster),
+        #     (distance, area, cluster)])
+        #     full = np.sum(full)
+        #     counter += cpus - full
+        #     print(counter)
+        while not full:
+            full = \
+                place_tree(distance, area, cluster=cluster, tight=cluster)
+            if not full:
+                counter += 1
+
+    else:
+        while not full:
+            full = \
+                place_tree(distance, area, cluster=cluster, tight=cluster)
+            if not full:
+                counter += 1
 
     if cluster and verbose:
         print(f'\nCluster has been filled. A total of {counter} trees have been placed within the cluster.')
@@ -248,7 +274,7 @@ def place_cluster(area, area_in_pixel=False):
     x_area, y_area, block_mask = set_area(x, y, block_mask, boundaries)
 
     background[:, :, :3] = np.multiply(background.astype('float64')[:, :, :3],
-                                       np.expand_dims(temporary_area, axis=2)*0.3
+                                       np.expand_dims(temporary_area, axis=2) * 0.3
                                        + np.int64(np.expand_dims(temporary_area, axis=2) == 0))
     background = np.round(background, 0).astype('uint8')
 
@@ -264,11 +290,63 @@ def dense_forest():
     fill_with_trees(0, cluster=True)
 
 
-def dense_edge():
-    # create larger cluster
-    # shift in random direction
-    # fill like normal cluster
-    pass
+def forest_edge():
+    global background, free_area
+    cluster_mask = random_shape(np.max([background.shape[0], background.shape[1]]) * 2, shape_type='close')
+
+    boundaries = background.shape
+
+    side = np.random.choice(4)
+    if side in [0, 1]:  # down or up, x-direction
+        move_distance = int(boundaries[0] / 2) - np.random.choice(np.arange(- 4 * boundaries[0]//10, boundaries[0]//2))
+        if side == 1:  # up side, down movement
+            x_range_cluster = [0, move_distance]
+        else:  # down side, up movement
+            x_range_cluster = [cluster_mask.shape[0] - move_distance, cluster_mask.shape[0]]
+        y_range_cluster = [int(cluster_mask.shape[1] / 4), int(cluster_mask.shape[1] / 4) + boundaries[1]]
+    else:  # left or right, y-direction
+        move_distance = int(boundaries[1] / 2) - np.random.choice(np.arange(- 4 * boundaries[1]//10, boundaries[1]//2))
+        if side == 2:  # left side, right movement
+            y_range_cluster = [0, move_distance]
+        else:  # right side, left movement
+            y_range_cluster = [cluster_mask.shape[1] - move_distance, cluster_mask.shape[1]]
+        x_range_cluster = [int(cluster_mask.shape[0] / 4), int(cluster_mask.shape[0] / 4) + boundaries[0]]
+
+    cluster_mask = cluster_mask[x_range_cluster[0]:x_range_cluster[1], y_range_cluster[0]:y_range_cluster[1]]
+    temporary_area = np.zeros_like(free_area)
+    distance = int(5 / np.sqrt(area_per_pixel))
+
+    if side in [0, 1]:  # down or up, x-direction
+        block_mask = resize(cluster_mask, (cluster_mask.shape[0] + distance, cluster_mask.shape[1]))
+        if side == 1:  # up side, down movement
+            temporary_area[boundaries[0] - cluster_mask.shape[0]:] = cluster_mask
+            if block_mask.shape[0] > boundaries[0]:
+                block_mask = block_mask[-boundaries[0]:]
+            free_area[boundaries[0] - block_mask.shape[0]:] *= block_mask == 0
+        else:  # down side, up movement
+            temporary_area[:cluster_mask.shape[0]] = cluster_mask
+            if block_mask.shape[0] > boundaries[0]:
+                block_mask = block_mask[:boundaries[0]]
+            free_area[:block_mask.shape[0]] *= block_mask == 0
+    else:  # left or right, y-direction
+        block_mask = resize(cluster_mask, (cluster_mask.shape[0], cluster_mask.shape[1] + distance))
+        if side == 2:  # left side, right movement
+            temporary_area[:, boundaries[1] - cluster_mask.shape[1]:] = cluster_mask
+            if block_mask.shape[1] > boundaries[1]:
+                block_mask = block_mask[:, -boundaries[1]:]
+            free_area[:, boundaries[1] - block_mask.shape[1]:] *= block_mask == 0
+        else:  # right side, left movement
+            temporary_area[:, :cluster_mask.shape[1]] = cluster_mask
+            if block_mask.shape[1] > boundaries[1]:
+                block_mask = block_mask[:boundaries[1]]
+            free_area[:, :block_mask.shape[1]] *= block_mask == 0
+
+    background[:, :, :3] = np.multiply(background.astype('float64')[:, :, :3],
+                                       np.expand_dims(temporary_area, axis=2) * 0.3
+                                       + np.int64(np.expand_dims(temporary_area, axis=2) == 0))
+    background = np.round(background, 0).astype('uint8')
+
+    fill_with_trees(0, temporary_area, cluster=True)
 
 
 def tree_type_distribution(back=True):
