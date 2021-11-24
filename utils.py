@@ -29,7 +29,7 @@ def load_image(path, bands=None):
 
 def save_image(path, image, mask, verbose=False):
     """Stores image in provided path."""
-    Path(str(path).rsplit('/', 1)[0]).mkdir(parents=True, exist_ok=True)
+    Path(str(path).rsplit('/', 1)[0].rsplit('\\', 1)[0]).mkdir(parents=True, exist_ok=True)
     path = Path(path)
     cv2.imwrite(str(path), image)
     mask_path = str(path).rsplit('.', 1)[0] + '_mask.' + str(path).rsplit('.', 1)[1]
