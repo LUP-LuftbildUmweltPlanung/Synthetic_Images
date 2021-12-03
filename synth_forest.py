@@ -60,7 +60,7 @@ def get_trees(files_path, file_type=None):
     files = get_files(files_path, file_type)
     tree_types = ['background']
     for file in files:
-        tree_type = str(file).rsplit('\\', 1)[-1].rsplit('/', 1)[-1].rsplit('_', 1)[0]
+        tree_type = str(file).rsplit('\\', 1)[-1].rsplit('/', 1)[-1].rsplit('_', 1)[0].upper()
         trees.append((file, tree_type))
         if tree_type not in tree_types:
             tree_types.append(tree_type)

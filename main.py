@@ -9,17 +9,18 @@ from utils import save_image
 
 # CONFIG START #
 background_file = r'Example_Tree_Data/Background/test_background_8bit.tif'
-trees_path = r'Example_Tree_Data/8bit'
+trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Tree_cutouts\trees_8bit'
+folder_name = 'Test_test'
 
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
 
-sparse_images = 30
-single_cluster_images = 30
-border_images = 30
-dense_images = 30
+sparse_images = 10
+single_cluster_images = 10
+border_images = 10
+dense_images = 10
 
-path = None
+path = 'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
 
 verbose = False
 # CONFIG END #
@@ -34,9 +35,9 @@ def sparse_image(idx):
     forest.get_trees(trees_path)
     forest.set_background(background_file, area_per_pixel, augment=True)
     forest.fill_with_trees(single_tree_distance)
-    save_image(path / ('Images/Sparse/sparse_image_' + str(idx) + '.tif'), forest.background, forest.mask)
+    save_image(path / (folder_name + '/Sparse/sparse_image_' + str(idx) + '.tif'), forest.background, forest.mask)
 
-    return forest.type_to_number, path / ('Images/Sparse/sparse_image_' + str(idx) + '.tif')
+    return forest.type_to_number, path / (folder_name + '/Sparse/sparse_image_' + str(idx) + '.tif')
 
 
 def single_cluster_image(idx):
@@ -46,10 +47,10 @@ def single_cluster_image(idx):
     area = np.random.choice(np.arange(int(max_area / 10), max_area))
     forest.place_cluster(area)
     forest.fill_with_trees(single_tree_distance)
-    save_image(path / ('Images/Single_cluster/single_cluster_image_' + str(idx) + '.tif'), forest.background,
-               forest.mask)
+    save_image(path / (folder_name + '/Single_cluster/single_cluster_image_' + str(idx) + '.tif'),
+               forest.background, forest.mask)
 
-    return forest.type_to_number, path / ('Images/Single_cluster/single_cluster_image_' + str(idx) + '.tif')
+    return forest.type_to_number, path / (folder_name + '/Single_cluster/single_cluster_image_' + str(idx) + '.tif')
 
 
 def border_image(idx):
@@ -57,18 +58,18 @@ def border_image(idx):
     forest.set_background(background_file, area_per_pixel, augment=True)
     forest.forest_edge()
     forest.fill_with_trees(single_tree_distance)
-    save_image(path / ('Images/Border/border_image_' + str(idx) + '.tif'), forest.background, forest.mask)
+    save_image(path / (folder_name + '/Border/border_image_' + str(idx) + '.tif'), forest.background, forest.mask)
 
-    return forest.type_to_number, path / ('Images/Border/border_image_' + str(idx) + '.tif')
+    return forest.type_to_number, path / (folder_name + '/Border/border_image_' + str(idx) + '.tif')
 
 
 def dense_image(idx):
     forest.get_trees(trees_path)
     forest.set_background(background_file, area_per_pixel, augment=True)
     forest.dense_forest()
-    save_image(path / ('Images/Dense/dense_image_' + str(idx) + '.tif'), forest.background, forest.mask)
+    save_image(path / (folder_name + '/Dense/dense_image_' + str(idx) + '.tif'), forest.background, forest.mask)
 
-    return forest.type_to_number, path / ('Images/Dense/dense_image_' + str(idx) + '.tif')
+    return forest.type_to_number, path / (folder_name + '/Dense/dense_image_' + str(idx) + '.tif')
 
 
 def create_images():
@@ -89,7 +90,7 @@ def create_images():
     labels_and_paths += pool.map(dense_image, range(dense_images))
     print(f'{dense_images} dense images have been created in {time() - start:.2f} seconds.\n')
 
-    with open(path / r'Images/labels.txt', 'w') as file:
+    with open(path / (folder_name + '/labels.txt'), 'w') as file:
         labels = []
         for l_p in labels_and_paths:
             l, p = l_p
