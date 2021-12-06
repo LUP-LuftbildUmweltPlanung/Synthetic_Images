@@ -8,9 +8,9 @@ import synth_forest as forest
 from utils import save_image, unpack_results, store_results
 
 # CONFIG START #
-background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds_8bit'
+background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds\background_8bit'
 trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Tree_cutouts\trees_8bit'
-folder_name = 'Test_test_test'
+folder_name = 'test_test'
 
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
@@ -134,11 +134,9 @@ if __name__ == '__main__':
     create_images()
 
 # notes:    - update documentation
-#           - cut out better trees
 #           - add warnings: warnings.warn("Warning......message")
 #           - add verbosity levels (None, basic, relevant, detailed)
 #
-# functions: - overarching config --> creation of hundreds of pictures
+# functions: 
 #
 # issues:   - clusters are placed at random, without considering free area
-#           - slow performance due to buffer calculation (in place_tree function) --> multi-processing?
