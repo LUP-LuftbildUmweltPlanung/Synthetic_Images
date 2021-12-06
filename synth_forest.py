@@ -46,6 +46,8 @@ def set_background(file_path, pixel_area=1, augment=False, bands=None, reset=Tru
         reset -- resets mask and blocked_area (default True)
     """
     global background, mask, free_area, height_mask
+    if not str(file_path).endswith('.tif'):
+        file_path = np.random.choice(get_files(file_path, 'tif'))
     background = load_image(file_path, bands)
     if augment:
         background = background_augmentation(background)

@@ -8,7 +8,7 @@ import synth_forest as forest
 from utils import save_image, unpack_results, store_results
 
 # CONFIG START #
-background_file = r'Example_Tree_Data/Background/test_background_8bit.tif'
+background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds_8bit'
 trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Tree_cutouts\trees_8bit'
 folder_name = 'Test_test_test'
 
@@ -33,7 +33,7 @@ path = Path(path)
 
 def sparse_image(idx):
     forest.get_trees(trees_path)
-    forest.set_background(background_file, area_per_pixel, augment=True)
+    forest.set_background(background_path, area_per_pixel, augment=True)
     forest.fill_with_trees(single_tree_distance)
     save_image(path / (folder_name + '/Sparse/sparse_image_' + str(idx) + '.tif'), forest.background, forest.mask)
     trees, tree_types, tree_type_distribution, tree_type_distribution_no_back = forest.detailed_results()
@@ -44,7 +44,7 @@ def sparse_image(idx):
 
 def single_cluster_image(idx):
     forest.get_trees(trees_path)
-    forest.set_background(background_file, area_per_pixel, augment=True)
+    forest.set_background(background_path, area_per_pixel, augment=True)
     max_area = forest.background.shape[0] * forest.background.shape[1] * area_per_pixel
     area = np.random.choice(np.arange(int(max_area / 10), max_area))
     forest.place_cluster(area)
@@ -59,7 +59,7 @@ def single_cluster_image(idx):
 
 def border_image(idx):
     forest.get_trees(trees_path)
-    forest.set_background(background_file, area_per_pixel, augment=True)
+    forest.set_background(background_path, area_per_pixel, augment=True)
     forest.forest_edge()
     forest.fill_with_trees(single_tree_distance)
     save_image(path / (folder_name + '/Border/border_image_' + str(idx) + '.tif'), forest.background, forest.mask)
@@ -71,7 +71,7 @@ def border_image(idx):
 
 def dense_image(idx):
     forest.get_trees(trees_path)
-    forest.set_background(background_file, area_per_pixel, augment=True)
+    forest.set_background(background_path, area_per_pixel, augment=True)
     forest.dense_forest()
     save_image(path / (folder_name + '/Dense/dense_image_' + str(idx) + '.tif'), forest.background, forest.mask)
     trees, tree_types, tree_type_distribution, tree_type_distribution_no_back = forest.detailed_results()
