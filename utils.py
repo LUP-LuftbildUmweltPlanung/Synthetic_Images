@@ -143,3 +143,39 @@ def fill_contours(arr):
                    np.maximum.accumulate(arr[:, ::-1], 1)[:, ::-1],
                    np.maximum.accumulate(arr[::-1, :], 0)[::-1, :],
                    np.maximum.accumulate(arr, 0)], axis=0)
+
+
+def unpack_results(result, image_count):
+    labels_and_paths = []
+    tot_trees = 0
+    tot_tree_types = {}
+    tot_tree_types_dist = {'background': 0}
+    tot_tree_types_dist_no_back = {}
+    for res in result:
+        label, img_path, trees, tree_types, tree_types_dist, tree_types_dist_no_back = res
+        labels_and_paths.append((label, img_path))
+        tot_trees += trees
+        for k in list(tree_types.keys()):
+            if k in tot_tree_types.keys():
+                tot_tree_types[k] += tree_types[k]
+                tot_tree_types_dist[k] += tree_types_dist[k]
+                tot_tree_types_dist_no_back[k] += tree_types_dist_no_back[k]
+            else:
+                tot_tree_types[k] = tree_types[k]
+                tot_tree_types_dist[k] = tree_types_dist[k]
+                tot_tree_types_dist_no_back[k] = tree_types_dist_no_back[k]
+        tot_tree_types_dist['background'] += tree_types_dist['background']
+
+    for k in list(tot_tree_types.keys()):
+        tot_tree_types_dist[k] = np.divide(tot_tree_types_dist[k], image_count).round(decimals=3)
+        tot_tree_types_dist_no_back[k] = np.divide(tot_tree_types_dist_no_back[k], image_count).round(decimals=3)
+    tot_tree_types_dist['background'] = np.divide(tot_tree_types_dist['background'], image_count).round(decimals=3)
+
+    return labels_and_paths, tot_trees, tot_tree_types, tot_tree_types_dist, tot_tree_types_dist_no_back
+
+
+def store_results(results, path):
+    with open(path / 'overview.txt', 'w') as file:
+        for r in results:
+            file.write(str(r))
+            file.write('\n\n')

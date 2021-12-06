@@ -414,9 +414,12 @@ def visualize():
         plt.show()
 
 
-def detailed_results():
+def detailed_results(show=False):
     """Prints numbers of trees as well as distribution."""
-    print(f'\nTotal number of trees placed: {tree_counter}.')
-    print(f'Distribution of tree types: {tree_type_counter}.')
-    print(f'Percentage: {tree_type_distribution()}.')
-    print(f'Percentage without background: {tree_type_distribution(back=False)}.')
+    if show:
+        print(f'\nTotal number of trees placed: {tree_counter}.')
+        print(f'Distribution of tree types: {tree_type_counter}.')
+        print(f'Percentage: {tree_type_distribution()}.')
+        print(f'Percentage without background: {tree_type_distribution(back=False)}.')
+
+    return tree_counter, tree_type_counter, tree_type_distribution(), tree_type_distribution(back=False)
