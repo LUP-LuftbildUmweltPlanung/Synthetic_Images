@@ -19,6 +19,21 @@ type_to_number = {}
 number_to_type = {}
 trees = []
 
+tree_type_grouping = {"GBI": "BI",  # BI
+                      "BU": "BU", "HBU": "BU", "RBU": "BU",  # BU
+                      "EI": "EI", "SE": "EI", "SEI": "EI", "TEI": "EI",  # EI
+                      "REI": "REI",  # EI
+                      "RER": "ER", "SER": "ER",  # ER
+                      "FIS": "FI", "GFI": "FI", "OFI": "FI", "PFI": "FI", "SFI": "FI",  # FI
+                      "GKI": "KI", "SKI": "KI", "WKI": "KI",  # KI
+                      "ELA": "ELA",  # LA
+                      "BAH": "BAH",  # SHL
+                      "GES": "GES",  # SHL
+                      "AH": "AH/ROB", "ROB": "AH/ROB",  # SHL
+                      "ASP": "SWL", "PAP": "SWL", "SWL": "SWL",  # SWL
+                      "WLI": "WLI"  # SWL
+                      }
+
 
 def set_background(file_path, pixel_area=1, augment=False, bands=None, reset=True):
     """Loads a image files as background. Unless specified, also provides a fresh label mask and blocked_area mask.
@@ -61,6 +76,11 @@ def get_trees(files_path, file_type=None):
     tree_types = ['background']
     for file in files:
         tree_type = str(file).rsplit('\\', 1)[-1].rsplit('/', 1)[-1].rsplit('_', 1)[0].upper()
+        if tree_type in tree_type_grouping.keys():
+            tree_type = tree_type_grouping[tree_type]
+        else:
+            warnings.warn(f'{tree_type} not in known tree types: {list(tree_type_grouping.keys())}.'
+                          f' A new class will be created.')
         trees.append((file, tree_type))
         if tree_type not in tree_types:
             tree_types.append(tree_type)

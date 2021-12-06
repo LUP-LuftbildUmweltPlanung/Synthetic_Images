@@ -10,15 +10,15 @@ from utils import save_image
 # CONFIG START #
 background_file = r'Example_Tree_Data/Background/test_background_8bit.tif'
 trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Tree_cutouts\trees_8bit'
-folder_name = 'Test_test'
+folder_name = 'Test_test_test'
 
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
 
-sparse_images = 10
-single_cluster_images = 10
-border_images = 10
-dense_images = 10
+sparse_images = 3
+single_cluster_images = 0
+border_images = 0
+dense_images = 0
 
 path = 'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
 
