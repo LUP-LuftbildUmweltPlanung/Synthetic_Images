@@ -123,13 +123,11 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
 
     place = False
     while not place:
-        # BUFFER, IN PROGRESS #
         kernel = np.int64(fill_contours(tree[:, :, 0] != 0))
         kernel = np.int64(downscale_local_mean(kernel, (kernel_ratio, kernel_ratio)) != 0)
         area_with_buffer = np.int64(convolve2d(area == 0, kernel, mode='same') > 0) == 0
-        # BUFFER, IN PROGRESS #
 
-        if np.sum(area_with_buffer) == 0:  # IF BUFFER REPLACE WITH FREE_AREA_WITH_BUFFER
+        if np.sum(area_with_buffer) == 0:
             # if verbose:
             #    print('\nImage does not contain any free area anymore. No tree was placed.')
             if cluster and kernel_ratio < 5:
@@ -141,7 +139,6 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
             x, y = random_position(area_with_buffer)
             place = True
 
-    # buffer #
     if tight:
         direction = np.random.choice(4)
         contact = False
@@ -156,7 +153,6 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
                 contact = True
             else:
                 x, y = pos
-    # Buffer #
 
     boundaries = background.shape
 
@@ -194,7 +190,7 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
 #     return place_tree(distance, area, cluster=cluster, tight=cluster)
 
 
-def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True, multi=False):
+def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True):
     """Repeats the 'place_tree'-function until no more trees can be placed.
 
                 Keyword arguments (same as 'place_tree'):
@@ -213,31 +209,12 @@ def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True, mul
 
     full = False
     counter = 0
-    if multi:
-        warnings.warn("Multiprocessing not yet functional, and should therefore not be used. "
-                      "The function will be handled as if multiprocessing was disabled.")
-        # cpus = cpu_count()-1
-        # pool = Pool(processes=cpus)
-        # while not full:
-        #     full = pool.map(multi_place_tree,
-        #     [(distance, area, cluster),(distance, area, cluster),(distance, area, cluster),
-        #     (distance, area, cluster),(distance, area, cluster),(distance, area, cluster),
-        #     (distance, area, cluster)])
-        #     full = np.sum(full)
-        #     counter += cpus - full
-        #     print(counter)
-        while not full:
-            full = \
-                place_tree(distance, area, cluster=cluster, tight=cluster)
-            if not full:
-                counter += 1
 
-    else:
-        while not full:
-            full = \
-                place_tree(distance, area, cluster=cluster, tight=cluster)
-            if not full:
-                counter += 1
+    while not full:
+        full = \
+            place_tree(distance, area, cluster=cluster, tight=cluster)
+        if not full:
+            counter += 1
 
     if cluster and verbose:
         print(f'\nCluster has been filled. A total of {counter} trees have been placed within the cluster.')

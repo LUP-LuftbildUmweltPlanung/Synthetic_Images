@@ -15,12 +15,12 @@ folder_name = 'Test_test_test'
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
 
-sparse_images = 10
-single_cluster_images = 10
-border_images = 10
-dense_images = 10
+sparse_images = 0
+single_cluster_images = 1
+border_images = 0
+dense_images = 0
 
-path = 'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
+path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
 
 verbose = False
 # CONFIG END #
@@ -45,7 +45,7 @@ def sparse_image(idx):
 def single_cluster_image(idx):
     forest.get_trees(trees_path)
     forest.set_background(background_file, area_per_pixel, augment=True)
-    max_area = forest.background.size * area_per_pixel
+    max_area = forest.background.shape[0] * forest.background.shape[1] * area_per_pixel
     area = np.random.choice(np.arange(int(max_area / 10), max_area))
     forest.place_cluster(area)
     forest.fill_with_trees(single_tree_distance)
@@ -85,33 +85,37 @@ def create_images():
     pool = Pool(processes=cpus)
     labels_and_paths = []
 
-    start = time()
-    results = pool.map(sparse_image, range(sparse_images))
-    results = unpack_results(results, sparse_images)
-    labels_and_paths += results[0]
-    store_results(results[1:], path=path / (folder_name + '/Sparse'))
-    print(f'{sparse_images} sparse images have been created in {time() - start:.2f} seconds.\n')
+    if sparse_images:
+        start = time()
+        results = pool.map(sparse_image, range(sparse_images))
+        results = unpack_results(results, sparse_images)
+        labels_and_paths += results[0]
+        store_results(results[1:], path=path / (folder_name + '/Sparse'))
+        print(f'{sparse_images} sparse images have been created in {time() - start:.2f} seconds.\n')
 
-    start = time()
-    results = pool.map(single_cluster_image, range(single_cluster_images))
-    results = unpack_results(results, single_cluster_images)
-    labels_and_paths += results[0]
-    store_results(results[1:], path=path / (folder_name + '/Single_cluster'))
-    print(f'{single_cluster_images} single cluster images have been created in {time() - start:.2f} seconds.\n')
+    if single_cluster_images:
+        start = time()
+        results = pool.map(single_cluster_image, range(single_cluster_images))
+        results = unpack_results(results, single_cluster_images)
+        labels_and_paths += results[0]
+        store_results(results[1:], path=path / (folder_name + '/Single_cluster'))
+        print(f'{single_cluster_images} single cluster images have been created in {time() - start:.2f} seconds.\n')
 
-    start = time()
-    results = pool.map(border_image, range(border_images))
-    results = unpack_results(results, border_images)
-    labels_and_paths += results[0]
-    store_results(results[1:], path=path / (folder_name + '/Border'))
-    print(f'{border_images} border images have been created in {time() - start:.2f} seconds.\n')
+    if border_images:
+        start = time()
+        results = pool.map(border_image, range(border_images))
+        results = unpack_results(results, border_images)
+        labels_and_paths += results[0]
+        store_results(results[1:], path=path / (folder_name + '/Border'))
+        print(f'{border_images} border images have been created in {time() - start:.2f} seconds.\n')
 
-    start = time()
-    results = pool.map(dense_image, range(dense_images))
-    results = unpack_results(results, dense_images)
-    labels_and_paths += results[0]
-    store_results(results[1:], path=path / (folder_name + '/Dense'))
-    print(f'{dense_images} dense images have been created in {time() - start:.2f} seconds.\n')
+    if dense_images:
+        start = time()
+        results = pool.map(dense_image, range(dense_images))
+        results = unpack_results(results, dense_images)
+        labels_and_paths += results[0]
+        store_results(results[1:], path=path / (folder_name + '/Dense'))
+        print(f'{dense_images} dense images have been created in {time() - start:.2f} seconds.\n')
 
     with open(path / (folder_name + '/labels.txt'), 'w') as file:
         labels = []
