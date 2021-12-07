@@ -297,19 +297,23 @@ def forest_edge():
 
     side = np.random.choice(4)
     if side in [0, 1]:  # down or up, x-direction
-        move_distance = int(boundaries[0] / 2) - np.random.choice(np.arange(- 4 * boundaries[0]//10, boundaries[0]//2))
+        move_distance = int(boundaries[0] / 2) \
+                        - np.random.choice(np.arange(- 4 * boundaries[0]//10, 4 * boundaries[0]//10))
         if side == 1:  # up side, down movement
             x_range_cluster = [0, move_distance]
         else:  # down side, up movement
             x_range_cluster = [cluster_mask.shape[0] - move_distance, cluster_mask.shape[0]]
-        y_range_cluster = [int(cluster_mask.shape[1] / 4), int(cluster_mask.shape[1] / 4) + boundaries[1]]
+        y_range_cluster = [int((cluster_mask.shape[1] - boundaries[1]) / 2),
+                           int((cluster_mask.shape[1] - boundaries[1]) / 2) + boundaries[1]]
     else:  # left or right, y-direction
-        move_distance = int(boundaries[1] / 2) - np.random.choice(np.arange(- 4 * boundaries[1]//10, boundaries[1]//2))
+        move_distance = int(boundaries[1] / 2) \
+                        - np.random.choice(np.arange(- 4 * boundaries[1]//10, 4 * boundaries[1]//10))
         if side == 2:  # left side, right movement
             y_range_cluster = [0, move_distance]
         else:  # right side, left movement
             y_range_cluster = [cluster_mask.shape[1] - move_distance, cluster_mask.shape[1]]
-        x_range_cluster = [int(cluster_mask.shape[0] / 4), int(cluster_mask.shape[0] / 4) + boundaries[0]]
+        x_range_cluster = [int((cluster_mask.shape[0] - boundaries[0]) / 2),
+                           int((cluster_mask.shape[0] - boundaries[0]) / 2) + boundaries[0]]
 
     cluster_mask = cluster_mask[x_range_cluster[0]:x_range_cluster[1], y_range_cluster[0]:y_range_cluster[1]]
     temporary_area = np.zeros_like(free_area)
@@ -318,10 +322,10 @@ def forest_edge():
     if side in [0, 1]:  # down or up, x-direction
         block_mask = resize(cluster_mask, (cluster_mask.shape[0] + distance, cluster_mask.shape[1]))
         if side == 1:  # up side, down movement
-            temporary_area[boundaries[0] - cluster_mask.shape[0]:] = cluster_mask
+            temporary_area[-cluster_mask.shape[0]:] = cluster_mask
             if block_mask.shape[0] > boundaries[0]:
                 block_mask = block_mask[-boundaries[0]:]
-            free_area[boundaries[0] - block_mask.shape[0]:] *= block_mask == 0
+            free_area[-block_mask.shape[0]:] *= block_mask == 0
         else:  # down side, up movement
             temporary_area[:cluster_mask.shape[0]] = cluster_mask
             if block_mask.shape[0] > boundaries[0]:
@@ -337,7 +341,7 @@ def forest_edge():
         else:  # right side, left movement
             temporary_area[:, :cluster_mask.shape[1]] = cluster_mask
             if block_mask.shape[1] > boundaries[1]:
-                block_mask = block_mask[:boundaries[1]]
+                block_mask = block_mask[:, :boundaries[1]]
             free_area[:, :block_mask.shape[1]] *= block_mask == 0
 
     background[:, :, :3] = np.multiply(background.astype('float64')[:, :, :3],

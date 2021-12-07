@@ -10,7 +10,7 @@ from utils import save_image, unpack_results, store_results
 # CONFIG START #
 background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds\background_8bit\40cm'
 trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Tree_cutouts\trees_8bit\40cm'
-folder_name = '40cm_100_each'
+folder_name = '40cm_2500_each_test'
 
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
