@@ -358,14 +358,18 @@ def tree_type_distribution(back=True):
     """
     tree_type_area = {}
     area = 0
-    for label in range(np.max(mask) + 1):
+    for number in tree_type_counter.keys():
+        label = type_to_number[number]
         label_area = np.sum(mask == label)
         tree_type = number_to_type[label]
-        if not back and tree_type == 'background':
-            pass
-        else:
-            tree_type_area[tree_type] = label_area
-            area += label_area
+        tree_type_area[tree_type] = label_area
+        area += label_area
+    if back:
+        label = type_to_number['background']
+        label_area = np.sum(mask == label)
+        tree_type = number_to_type[label]
+        tree_type_area[tree_type] = label_area
+        area += label_area
     for label in tree_type_area:
         tree_type_area[label] = np.round(tree_type_area[label] / area, 2)
 

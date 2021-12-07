@@ -2,23 +2,23 @@ import os
 import numpy as np
 from pathlib import Path
 from time import time
-from multiprocessing import cpu_count, Pool
+from multiprocessing import cpu_count, Pool, current_process
 
 import synth_forest as forest
 from utils import save_image, unpack_results, store_results
 
 # CONFIG START #
-background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds\background_8bit'
-trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Tree_cutouts\trees_8bit'
-folder_name = 'test_test'
+background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds\background_8bit\40cm'
+trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Tree_cutouts\trees_8bit\40cm'
+folder_name = '40cm_100_each'
 
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
 
-sparse_images = 0
-single_cluster_images = 1
-border_images = 0
-dense_images = 0
+sparse_images = 100
+single_cluster_images = 100
+border_images = 100
+dense_images = 100
 
 path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
 
@@ -82,7 +82,7 @@ def dense_image(idx):
 
 def create_images():
     cpus = cpu_count() - 1
-    pool = Pool(processes=cpus)
+    pool = Pool(processes=cpus, initializer=np.random.seed(current_process().pid))
     labels_and_paths = []
 
     if sparse_images:
@@ -137,6 +137,9 @@ if __name__ == '__main__':
 #           - add warnings: warnings.warn("Warning......message")
 #           - add verbosity levels (None, basic, relevant, detailed)
 #
-# functions: 
+# functions: - option to disable multiprocessing
 #
 # issues:   - clusters are placed at random, without considering free area
+#           - mulitprocessing mixes the results. As results are calculated per image class,
+#           it should not cause an issue, but may cause other problems or even mistakes in the distribution
+#           (error not fully understood)

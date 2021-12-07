@@ -156,14 +156,22 @@ def unpack_results(result, image_count):
         labels_and_paths.append((label, img_path))
         tot_trees += trees
         for k in list(tree_types.keys()):
-            if k in tot_tree_types.keys():
-                tot_tree_types[k] += tree_types[k]
-                tot_tree_types_dist[k] += tree_types_dist[k]
-                tot_tree_types_dist_no_back[k] += tree_types_dist_no_back[k]
-            else:
+            if k not in tot_tree_types.keys():
                 tot_tree_types[k] = tree_types[k]
+            else:
+                tot_tree_types[k] += tree_types[k]
+
+        for k in list(tree_types_dist.keys()):
+            if k not in tot_tree_types_dist.keys():
                 tot_tree_types_dist[k] = tree_types_dist[k]
+            else:
+                tot_tree_types_dist[k] += tree_types_dist[k]
+
+        for k in list(tree_types_dist_no_back.keys()):
+            if k not in tot_tree_types_dist_no_back.keys():
                 tot_tree_types_dist_no_back[k] = tree_types_dist_no_back[k]
+            else:
+                tot_tree_types_dist_no_back[k] += tree_types_dist_no_back[k]
 
         tot_tree_types_dist['background'] += tree_types_dist['background']
 
