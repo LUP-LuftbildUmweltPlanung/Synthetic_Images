@@ -1,26 +1,28 @@
 import os
+import shutil
 import numpy as np
 from pathlib import Path
 from time import time
 from multiprocessing import cpu_count, Pool, current_process
 
 import synth_forest as forest
-from utils import save_image, unpack_results, store_results
+from utils import save_image, unpack_results, store_results, get_files
 
 # CONFIG START #
 background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds\background_8bit\40cm'
 trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Tree_cutouts\trees_8bit\40cm'
-folder_name = '40cm_2500_each_test'
+folder_name = '40cm_2500_each'
 
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
 
-sparse_images = 100
-single_cluster_images = 100
-border_images = 100
-dense_images = 100
+sparse_images = 2500
+single_cluster_images = 2500
+border_images = 2500
+dense_images = 2500
 
 path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
+unet_format = True
 
 verbose = False
 # CONFIG END #
@@ -130,8 +132,37 @@ def create_images():
             file.write('\n')
 
 
+def prepare_files_for_unet(destination):
+    destination = Path(destination)
+    source = path / folder_name
+    sources = [p.path for p in os.scandir(str(source)) if p.is_dir()]
+    Path(destination / 'img_mask').mkdir(parents=True, exist_ok=True)
+    Path(destination / 'img_tiles').mkdir(parents=True, exist_ok=True)
+    for s in sources:
+        files = get_files(s, 'tif')
+        for f in files:
+            if str(f).rsplit('_', 1)[-1] == 'mask.tif':
+                dest = destination / 'img_mask'
+            else:
+                dest = destination / 'img_tiles'
+
+            try:
+                shutil.copy(f, dest)
+
+            # If source and destination are same
+            except shutil.SameFileError:
+                print("Source and destination represents the same file.")
+
+            # If there is any permission issue
+            except PermissionError:
+                print("Permission denied.")
+
+    print("Copied all files successfully.")
+
+
 if __name__ == '__main__':
     create_images()
+    prepare_files_for_unet(destination=path / folder_name / "Unet_Format")
 
 # notes:    - update documentation
 #           - add warnings: warnings.warn("Warning......message")

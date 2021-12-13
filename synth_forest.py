@@ -272,9 +272,13 @@ def place_cluster(area, area_in_pixel=False):
 
     x_area, y_area, block_mask = set_area(x, y, block_mask, boundaries)
 
-    background[:, :, :3] = np.multiply(background.astype('float64')[:, :, :3],
-                                       np.expand_dims(temporary_area, axis=2) * 0.3
-                                       + np.int64(np.expand_dims(temporary_area, axis=2) == 0))
+    # background[:, :, :3] = np.multiply(background.astype('float64')[:, :, :3],
+    #                                    np.expand_dims(temporary_area, axis=2) * 0.3
+    #                                    + np.int64(np.expand_dims(temporary_area, axis=2) == 0))
+
+    background = np.multiply(background.astype('float64'),
+                             np.expand_dims(temporary_area, axis=2) * 0.3
+                             + np.int64(np.expand_dims(temporary_area, axis=2) == 0))
     background = np.round(background, 0).astype('uint8')
 
     fill_with_trees(0, temporary_area, cluster=True)
