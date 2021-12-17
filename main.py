@@ -6,20 +6,22 @@ from time import time
 from multiprocessing import cpu_count, Pool, current_process
 
 import synth_forest as forest
-from utils import save_image, unpack_results, store_results, get_files
+from utils import save_image, unpack_results, store_results, get_files, merge_dictionaries
 
 # CONFIG START #
-background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds\background_8bit\40cm'
-trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Tree_cutouts\trees_8bit\40cm'
-folder_name = '40cm_2500_each'
+background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds\40cm\background_8bit\Train'
+trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\tree_cutouts\trees\40cm\trees_8bit\Train'
+folder_name = '40cm_750_each_Train'
+
+label_dictionary = None  # Needs more testing
 
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
 
-sparse_images = 2500
-single_cluster_images = 2500
-border_images = 2500
-dense_images = 2500
+sparse_images = 750
+single_cluster_images = 750
+border_images = 750
+dense_images = 750
 
 path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
 unet_format = True
@@ -34,7 +36,16 @@ path = Path(path)
 
 
 def sparse_image(idx):
+    """Creates an image containing sparsely placed trees.
+
+                Keyword arguments:
+                idx -- index of the current image to be used when storing mask and image
+    """
     forest.get_trees(trees_path)
+    # if label_dictionary is not None:  # Needs more testing
+    #     dic = merge_dictionaries(label_dictionary, forest.type_to_number)
+    #     forest.type_to_number = dic
+    #     forest.number_to_type = dict((v, k) for k, v in dic.items())
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.fill_with_trees(single_tree_distance)
     save_image(path / (folder_name + '/Sparse/sparse_image_' + str(idx) + '.tif'), forest.background, forest.mask)
@@ -45,6 +56,11 @@ def sparse_image(idx):
 
 
 def single_cluster_image(idx):
+    """Creates an image containing a single, small, dense cluster and sparsely placed trees.
+
+                Keyword arguments:
+                idx -- index of the current image to be used when storing mask and image
+    """
     forest.get_trees(trees_path)
     forest.set_background(background_path, area_per_pixel, augment=True)
     max_area = forest.background.shape[0] * forest.background.shape[1] * area_per_pixel
@@ -60,6 +76,11 @@ def single_cluster_image(idx):
 
 
 def border_image(idx):
+    """Creates an image containing a dense forest border and sparsely placed trees.
+
+                Keyword arguments:
+                idx -- index of the current image to be used when storing mask and image
+    """
     forest.get_trees(trees_path)
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.forest_edge()
@@ -72,6 +93,11 @@ def border_image(idx):
 
 
 def dense_image(idx):
+    """Creates an image containing densely packed trees.
+
+                Keyword arguments:
+                idx -- index of the current image to be used when storing mask and image
+    """
     forest.get_trees(trees_path)
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.dense_forest()
@@ -83,6 +109,7 @@ def dense_image(idx):
 
 
 def create_images():
+    """Creates the provided amount of images at the provided location."""
     cpus = cpu_count() - 1
     pool = Pool(processes=cpus, initializer=np.random.seed(current_process().pid))
     labels_and_paths = []
@@ -133,16 +160,21 @@ def create_images():
 
 
 def prepare_files_for_unet(destination):
+    """Copies the files from the provided path (in the CONFIG) to the destination folder in a UNET required structure.
+
+                Keyword arguments:
+                destination -- folder to store the files in a UNET required structure in
+    """
     destination = Path(destination)
     source = path / folder_name
     sources = [p.path for p in os.scandir(str(source)) if p.is_dir()]
-    Path(destination / 'img_mask').mkdir(parents=True, exist_ok=True)
+    Path(destination / 'mask_tiles').mkdir(parents=True, exist_ok=True)
     Path(destination / 'img_tiles').mkdir(parents=True, exist_ok=True)
     for s in sources:
         files = get_files(s, 'tif')
         for f in files:
             if str(f).rsplit('_', 1)[-1] == 'mask.tif':
-                dest = destination / 'img_mask'
+                dest = destination / 'mask_tiles'
             else:
                 dest = destination / 'img_tiles'
 
@@ -156,6 +188,9 @@ def prepare_files_for_unet(destination):
             # If there is any permission issue
             except PermissionError:
                 print("Permission denied.")
+
+            if str(f).rsplit('_', 1)[-1] == 'mask.tif':
+                os.rename(dest / str(f).rsplit('\\')[-1], dest / (str(f).rsplit('\\', 1)[-1].rsplit('_', 1)[0] + '.tif'))
 
     print("Copied all files successfully.")
 
@@ -174,3 +209,4 @@ if __name__ == '__main__':
 #           - mulitprocessing mixes the results. As results are calculated per image class,
 #           it should not cause an issue, but may cause other problems or even mistakes in the distribution
 #           (error not fully understood)
+#           - some created tree dictionaries were missing a single class

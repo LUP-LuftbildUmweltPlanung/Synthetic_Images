@@ -96,18 +96,15 @@ def get_trees(files_path, file_type=None):
     return trees, type_to_number, number_to_type
 
 
-def place_tree(distance, area=None, augment=True, cluster=False, tight=False, kernel_ratio=None):
+def place_tree(distance, area=None, augment=True, cluster=False, tight=False):
     """Places a single tree in a given distance of all other trees, updates the image mask and free area respectively.
 
             Keyword arguments:
             distance -- distance in pixels to be blocked around each tree
-            trees -- list containing tuples of type (tree_image_path, tree_type)
-            background -- array containing the image (N-dimensional)
-            mask -- array containing the image mask (1-dimensional)
-            free_area -- array containing 1 where trees can be placed (1-dimensional)
-            height_mask -- array containing the height mask (1-dimensional)
-            type_to_number -- dictionary mapping tree type to numerical label
+            area -- an area mask specifying where trees can be placed (default None --> uses internal free mask)
             augment -- if the tree image should be augmented (default True)
+            cluster -- if trees are placed in a tree cluster or in a free space (default False)
+            tight -- if trees should be placed in a tight layout (default False)
     """
     global background, mask, height_mask
     if distance != 0:
@@ -115,13 +112,15 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
         distance = int(np.clip(rnd_distance, distance * 0.5, distance * 1.5) / np.sqrt(area_per_pixel))
     if area is None:
         area = free_area
-    if kernel_ratio is None:
-        kernel_ratio = 1
-    else:
-        kernel_ratio = int(np.round(1 / kernel_ratio, 0))
+    # if kernel_ratio is None:
+    #     kernel_ratio = 1
+    # else:
+    #     kernel_ratio = int(np.round(1 / kernel_ratio, 0))
 
     tree, tree_type, height = random_tree(trees, augment)  # selects a tree at random from a list of trees
     tree_label = type_to_number[tree_type]  # converts tree_type to label
+
+    kernel_ratio = 1
 
     place = False
     while not place:
@@ -187,22 +186,12 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, ke
     return 0
 
 
-# def multi_place_tree(data):
-#     distance, area, cluster = data
-#     return place_tree(distance, area, cluster=cluster, tight=cluster)
-
-
 def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True):
     """Repeats the 'place_tree'-function until no more trees can be placed.
 
                 Keyword arguments (same as 'place_tree'):
-                distance -- distance in pixels to be blocked around each tree
-                trees -- list containing tuples of type (tree_image_path, tree_type)
-                background -- array containing the image (N-dimensional)
-                mask -- array containing the image mask (1-dimensional)
-                free_area -- array containing 1 where trees can be placed (1-dimensional)
-                height_mask -- array containing the height mask (1-dimensional)
-                type_to_number -- dictionary mapping tree type to numerical label
+                distance -- distance in pixels to be blocked around each tree (irrelevant if fixed_distance = True)
+                area -- area to be given to place_tree (default None --> uses internal free mask)
                 cluster -- if a cluster or a forest is being filled (default False)
                 fixed_distance -- if distance should be fixed to distance value or depending on tree size (default True)
     """
@@ -228,13 +217,7 @@ def place_cluster(area, area_in_pixel=False):
     """Creates a random shape of size 'area'. This shape is then filled with trees using the fill_trees function.
 
                 Keyword arguments (same as 'place_tree'):
-                area -- desired area of cluster in m² (unless area_in_pixel=True)
-                trees -- list containing tuples of type (tree_image_path, tree_type)
-                background -- array containing the image (N-dimensional)
-                mask -- array containing the image mask (1-dimensional)
-                free_area -- array containing 1 where trees can be placed (1-dimensional)
-                height_mask -- array containing the height mask (1-dimensional)
-                type_to_number -- dictionary mapping tree type to numerical label
+                area -- desired area of cluster in m² (unless area_in_pixel = True)
                 area_in_pixel -- if area is provided in pixel or in m² (default False)
     """
     global background, free_area
@@ -287,13 +270,17 @@ def place_cluster(area, area_in_pixel=False):
 
 
 def dense_forest():
+    """Places a shadow on the full background and fills the image with trees."""
     global background
-    background[:, :, :3] = np.multiply(background.astype('float64')[:, :, :3], 0.3)
+    background = np.multiply(background.astype('float64'), 0.3)
     background = np.round(background, 0).astype('uint8')
     fill_with_trees(0, cluster=True)
 
 
 def forest_edge():
+    """Creates a single cluster at least 4 times as big as the image.
+    Moves the cluster in a random direction (up/down/left/right),
+    then fills it with trees and adds sparse trees around the created forest border."""
     global background, free_area
     cluster_mask = random_shape(np.max([background.shape[0], background.shape[1]]) * 2, shape_type='close')
 
@@ -360,9 +347,7 @@ def tree_type_distribution(back=True):
     """Calculates distribution of class pixels in the image.
 
                 Keyword arguments (same as 'place_tree'):
-                mask -- array containing the image mask (1-dimensional)
-                type_to_number -- dictionary mapping numerical label to tree type
-                background -- if background class should be considered (default True)
+                back -- if the background pixels should be considered when calculating the distribution
     """
     tree_type_area = {}
     area = 0

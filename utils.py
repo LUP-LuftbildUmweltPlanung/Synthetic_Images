@@ -146,6 +146,8 @@ def fill_contours(arr):
 
 
 def unpack_results(result, image_count):
+    """Unpacks the results returned from the multiprocessing Pool-function,
+    running several instances of image creation at the same time."""
     labels_and_paths = []
     tot_trees = 0
     tot_tree_types = {}
@@ -184,7 +186,16 @@ def unpack_results(result, image_count):
 
 
 def store_results(results, path):
+    """Stores tree overview for an image group (e.g. Dense, Sparse etc.)."""
     with open(path / 'overview.txt', 'w') as file:
         for r in results:
             file.write(str(r))
             file.write('\n\n')
+
+
+def merge_dictionaries(loaded_dict, new_dict):  # needs more testing
+    """Merges two label dictionaries."""
+    for k in new_dict.keys():
+        if k not in loaded_dict.keys():
+            loaded_dict[k] = len(loaded_dict.keys()) - 1
+    return loaded_dict
