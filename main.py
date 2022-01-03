@@ -6,14 +6,15 @@ from time import time
 from multiprocessing import cpu_count, Pool, current_process
 
 import synth_forest as forest
-from utils import save_image, unpack_results, store_results, get_files, merge_dictionaries
+from utils import save_image, unpack_results, store_results, get_files
 
 # CONFIG START #
-background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds\40cm\background_8bit\Train'
-trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\tree_cutouts\trees\40cm\trees_8bit\Train'
-folder_name = '40cm_750_each_Train'
+background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds\40cm\background_8bit\Test'
+trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\tree_cutouts\trees\40cm\trees_8bit\Test'
+folder_name = '40cm_750_each_Test'
 
-label_dictionary = None  # Needs more testing
+label_dictionary = {'background': 0, 'ELA': 1, 'BI': 2, 'GES': 3, 'FI': 4, 'KI': 5, 'BU': 6, 'SWL': 7, 'REI': 8,
+                    'ER': 9, 'AH/ROB': 10, 'EI': 11, 'WLI': 12}
 
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
@@ -34,6 +35,20 @@ if path is None:
     path = os.getcwd()
 path = Path(path)
 
+forest.get_trees(trees_path)
+type_to_number = forest.type_to_number
+number_to_type = forest.number_to_type
+tree_list = forest.trees
+
+if label_dictionary is not None:
+    for l in type_to_number.keys():
+        if l not in label_dictionary.keys():
+            class_value = len(label_dictionary.keys())
+            label_dictionary[l] = class_value
+
+    type_to_number = label_dictionary
+    number_to_type = dict((v, k) for k, v in type_to_number.items())
+
 
 def sparse_image(idx):
     """Creates an image containing sparsely placed trees.
@@ -41,11 +56,10 @@ def sparse_image(idx):
                 Keyword arguments:
                 idx -- index of the current image to be used when storing mask and image
     """
-    forest.get_trees(trees_path)
-    # if label_dictionary is not None:  # Needs more testing
-    #     dic = merge_dictionaries(label_dictionary, forest.type_to_number)
-    #     forest.type_to_number = dic
-    #     forest.number_to_type = dict((v, k) for k, v in dic.items())
+    forest.type_to_number = type_to_number
+    forest.number_to_type = number_to_type
+    forest.trees = tree_list
+
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.fill_with_trees(single_tree_distance)
     save_image(path / (folder_name + '/Sparse/sparse_image_' + str(idx) + '.tif'), forest.background, forest.mask)
@@ -61,7 +75,10 @@ def single_cluster_image(idx):
                 Keyword arguments:
                 idx -- index of the current image to be used when storing mask and image
     """
-    forest.get_trees(trees_path)
+    forest.type_to_number = type_to_number
+    forest.number_to_type = number_to_type
+    forest.trees = tree_list
+
     forest.set_background(background_path, area_per_pixel, augment=True)
     max_area = forest.background.shape[0] * forest.background.shape[1] * area_per_pixel
     area = np.random.choice(np.arange(int(max_area / 10), max_area))
@@ -81,7 +98,10 @@ def border_image(idx):
                 Keyword arguments:
                 idx -- index of the current image to be used when storing mask and image
     """
-    forest.get_trees(trees_path)
+    forest.type_to_number = type_to_number
+    forest.number_to_type = number_to_type
+    forest.trees = tree_list
+
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.forest_edge()
     forest.fill_with_trees(single_tree_distance)
@@ -98,7 +118,10 @@ def dense_image(idx):
                 Keyword arguments:
                 idx -- index of the current image to be used when storing mask and image
     """
-    forest.get_trees(trees_path)
+    forest.type_to_number = type_to_number
+    forest.number_to_type = number_to_type
+    forest.trees = tree_list
+
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.dense_forest()
     save_image(path / (folder_name + '/Dense/dense_image_' + str(idx) + '.tif'), forest.background, forest.mask)
@@ -147,13 +170,10 @@ def create_images():
         print(f'{dense_images} dense images have been created in {time() - start:.2f} seconds.\n')
 
     with open(path / (folder_name + '/labels.txt'), 'w') as file:
-        labels = []
+        file.write(str(type_to_number))
+        file.write('\n\n')
         for l_p in labels_and_paths:
             l, p = l_p
-            if l not in labels:
-                labels.append(l)
-                file.write(str(l))
-                file.write('\n\n')
 
             file.write(str(p))
             file.write('\n')

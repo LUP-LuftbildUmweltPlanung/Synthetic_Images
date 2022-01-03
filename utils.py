@@ -129,7 +129,8 @@ def place_in_background(tree, tree_label, x_area, y_area, height, background, ma
     background[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree * tree_mask  # adds tree into freshly deleted area
 
     mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
-    mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * tree_label  # adds tree mask
+    mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * np.array(tree_label).astype('uint8')
+    # adds tree mask
 
     height_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
     height_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * height  # adds tree mask
