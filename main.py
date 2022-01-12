@@ -9,9 +9,9 @@ import synth_forest as forest
 from utils import save_image, unpack_results, store_results, get_files
 
 # CONFIG START #
-background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\Background_cutouts\backgrounds\40cm\background_8bit\Test'
-trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\tree_cutouts\trees\40cm\trees_8bit\Test'
-folder_name = '40cm_750_each_Test'
+background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\Background_cutouts\backgrounds\40cm\background_8bit\Train'
+trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\tree_cutouts\trees\40cm\trees_8bit\Train'
+folder_name = 'test'
 
 label_dictionary = {'background': 0, 'ELA': 1, 'BI': 2, 'GES': 3, 'FI': 4, 'KI': 5, 'BU': 6, 'SWL': 7, 'REI': 8,
                     'ER': 9, 'AH/ROB': 10, 'EI': 11, 'WLI': 12}
@@ -19,10 +19,10 @@ label_dictionary = {'background': 0, 'ELA': 1, 'BI': 2, 'GES': 3, 'FI': 4, 'KI':
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
 
-sparse_images = 750
-single_cluster_images = 750
-border_images = 750
-dense_images = 750
+sparse_images = 0
+single_cluster_images = 10
+border_images = 0
+dense_images = 10
 
 path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
 unet_format = True
@@ -41,10 +41,10 @@ number_to_type = forest.number_to_type
 tree_list = forest.trees
 
 if label_dictionary is not None:
-    for l in type_to_number.keys():
-        if l not in label_dictionary.keys():
+    for label in type_to_number.keys():
+        if label not in label_dictionary.keys():
             class_value = len(label_dictionary.keys())
-            label_dictionary[l] = class_value
+            label_dictionary[label] = class_value
 
     type_to_number = label_dictionary
     number_to_type = dict((v, k) for k, v in type_to_number.items())
@@ -62,6 +62,7 @@ def sparse_image(idx):
 
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.fill_with_trees(single_tree_distance)
+    forest.finish_image()
     save_image(path / (folder_name + '/Sparse/sparse_image_' + str(idx) + '.tif'), forest.background, forest.mask)
     trees, tree_types, tree_type_distribution, tree_type_distribution_no_back = forest.detailed_results()
 
@@ -84,6 +85,7 @@ def single_cluster_image(idx):
     area = np.random.choice(np.arange(int(max_area / 10), max_area))
     forest.place_cluster(area)
     forest.fill_with_trees(single_tree_distance)
+    forest.finish_image()
     save_image(path / (folder_name + '/Single_cluster/single_cluster_image_' + str(idx) + '.tif'),
                forest.background, forest.mask)
     trees, tree_types, tree_type_distribution, tree_type_distribution_no_back = forest.detailed_results()
@@ -105,6 +107,7 @@ def border_image(idx):
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.forest_edge()
     forest.fill_with_trees(single_tree_distance)
+    forest.finish_image()
     save_image(path / (folder_name + '/Border/border_image_' + str(idx) + '.tif'), forest.background, forest.mask)
     trees, tree_types, tree_type_distribution, tree_type_distribution_no_back = forest.detailed_results()
 
@@ -124,6 +127,7 @@ def dense_image(idx):
 
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.dense_forest()
+    forest.finish_image()
     save_image(path / (folder_name + '/Dense/dense_image_' + str(idx) + '.tif'), forest.background, forest.mask)
     trees, tree_types, tree_type_distribution, tree_type_distribution_no_back = forest.detailed_results()
 

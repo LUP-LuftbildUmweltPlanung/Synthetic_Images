@@ -2,6 +2,7 @@ import glob
 import os
 from pathlib import Path
 
+from scipy.ndimage.filters import gaussian_filter
 import albumentations as A
 import cv2
 import numpy as np
@@ -119,11 +120,23 @@ def random_position(free_area):
     return x, y
 
 
-def place_in_background(tree, tree_label, x_area, y_area, height, background, mask, height_mask):
+def place_in_background(tree, tree_label, x_area, y_area, height, background, mask, height_mask, edge_mask):
     """Places a single tree with the provided label at the provided position in both background and mask."""
     tree_mask = tree != 0  # mask to only remove tree part of image
     tree_mask[height_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] > height] = 0
     tree_mask = fill_contours(tree_mask)
+
+    contours, hierarchy = cv2.findContours(np.uint8(tree_mask[:, :, 0]), cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+    # gets contours of the tree
+
+    try:
+        x_coords = contours[0][:, :, 1].flatten() + x_area[0]  # x coordinates of the contours
+        y_coords = contours[0][:, :, 0].flatten() + y_area[0]  # y coordinates of the contours
+
+        edge_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0
+        edge_mask[x_coords, y_coords] = 1
+    except IndexError:
+        pass
 
     background[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask == 0  # empties tree area in background
     background[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree * tree_mask  # adds tree into freshly deleted area
@@ -135,7 +148,45 @@ def place_in_background(tree, tree_label, x_area, y_area, height, background, ma
     height_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] *= tree_mask[:, :, 0] == 0  # empties tree area in mask
     height_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] += tree_mask[:, :, 0] * height  # adds tree mask
 
-    return background, mask, height_mask
+    return background, mask, height_mask, edge_mask
+
+
+def blur_edges(background, edge_mask):
+
+    # OLD METHOD #
+    # contour_array_tree = np.zeros_like(tree_mask[:, :, 0])
+    # contour_array_tree[np.uint8(x_coords), np.uint8(y_coords)] = 1  # tree-sized array containing the tree contours
+    #
+    # contour_array_full = np.zeros_like(background[:, :, 0])
+    # contour_array_full[x_area[0]:x_area[1], y_area[0]:y_area[1]] = contour_array_tree
+    # # image-sized array containing the tree contours
+    #
+    # kernel = np.ones((3, 3))
+    # contour_array_full = np.int64(convolve2d(contour_array_full, kernel, mode='same') > 0)  # buffered contour
+    # contour_array_full = np.stack([contour_array_full]*background.shape[2], axis=2)  # adds image depth
+    #
+    # sigma = 2
+    # window_size = 3
+    # truncate = (((window_size - 1) / 2) - 0.5) / sigma
+    # smooth_background = gaussian_filter(background, sigma=sigma, truncate=truncate, mode='nearest')
+    #
+    # background = np.where(contour_array_full, smooth_background, background)
+    # OLD METHOD END #
+
+    x_coords, y_coords = np.where(edge_mask == 1)
+
+    window_size = 3
+    sigma = 2
+    truncate = (((window_size - 1) / 2) - 0.5) / sigma
+    for x, y in zip(x_coords, y_coords):
+        x = [np.max([0, x - int(window_size / 2)]), np.min([background.shape[0], x + int(window_size / 2)])]
+        y = [np.max([0, y - int(window_size / 2)]), np.min([background.shape[1], y + int(window_size / 2)])]
+
+        for layer in range(background.shape[2]):
+            background[x[0]:x[1], y[0]:y[1], layer] = gaussian_filter(background[x[0]:x[1], y[0]:y[1], layer],
+                                                                      sigma=sigma, truncate=truncate, mode='nearest')
+
+    return background
 
 
 def fill_contours(arr):

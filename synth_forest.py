@@ -15,6 +15,7 @@ background = np.empty(0)
 mask = np.empty(0)
 free_area = np.empty(0)
 height_mask = np.empty(0)
+edge_mask = np.empty(0)
 type_to_number = {}
 number_to_type = {}
 trees = []
@@ -45,7 +46,7 @@ def set_background(file_path, pixel_area=1, augment=False, bands=None, reset=Tru
         bands -- sets bands to specified value, leaves as is if None (default None)
         reset -- resets mask and blocked_area (default True)
     """
-    global background, mask, free_area, height_mask
+    global background, mask, free_area, height_mask, edge_mask
     if not str(file_path).endswith('.tif'):
         file_path = np.random.choice(get_files(file_path, 'tif'))
     background = load_image(file_path, bands)
@@ -58,7 +59,8 @@ def set_background(file_path, pixel_area=1, augment=False, bands=None, reset=Tru
         mask = np.zeros_like(background[:, :, 0])
         free_area = np.ones_like(background[:, :, 0])
         height_mask = np.ones_like(background[:, :, 0], dtype='int32')
-        return mask, free_area, height_mask
+        edge_mask = np.zeros_like(background[:, :, 0])
+        return mask, free_area, height_mask, edge_mask
     else:
         return 0
 
@@ -106,7 +108,7 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False):
             cluster -- if trees are placed in a tree cluster or in a free space (default False)
             tight -- if trees should be placed in a tight layout (default False)
     """
-    global background, mask, height_mask
+    global background, mask, height_mask, edge_mask
     if distance != 0:
         rnd_distance = np.random.normal(distance, distance)
         distance = int(np.clip(rnd_distance, distance * 0.5, distance * 1.5) / np.sqrt(area_per_pixel))
@@ -159,8 +161,8 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False):
 
     x_area, y_area, tree = set_area(x, y, tree, boundaries)  # sets image area, crops if necessary
 
-    background, mask, height_mask = place_in_background(tree, tree_label, x_area, y_area, height,
-                                                        background, mask, height_mask)
+    background, mask, height_mask, edge_mask = place_in_background(tree, tree_label, x_area, y_area, height,
+                                                                   background, mask, height_mask, edge_mask)
 
     if distance == 0:
         shape_type = 'close'
@@ -367,6 +369,16 @@ def tree_type_distribution(back=True):
         tree_type_area[label] = np.round(tree_type_area[label] / area, 2)
 
     return tree_type_area
+
+
+def finish_image():
+    global background, edge_mask
+    background = blur_edges(background, edge_mask)
+
+    plt.imshow(background)
+    plt.show()
+
+    return background
 
 
 def visualize():
