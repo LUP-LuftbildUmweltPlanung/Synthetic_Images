@@ -20,19 +20,21 @@ type_to_number = {}
 number_to_type = {}
 trees = []
 
-tree_type_grouping = {"GBI": "BI",  # BI
-                      "BU": "BU", "HBU": "BU", "RBU": "BU",  # BU
+tree_type_grouping = {"BAH": "BAH",  # SHL
+                      "BI": "BI", "GBI": "BI",  # BI
+                      "BU": "BU", "RBU": "BU",  # BU
                       "EI": "EI", "SE": "EI", "SEI": "EI", "TEI": "EI",  # EI
-                      "REI": "REI",  # EI
-                      "RER": "ER", "SER": "ER",  # ER
-                      "FIS": "FI", "GFI": "FI", "OFI": "FI", "PFI": "FI", "SFI": "FI",  # FI
-                      "GKI": "KI", "SKI": "KI", "WKI": "KI",  # KI
                       "ELA": "ELA",  # LA
-                      "BAH": "BAH",  # SHL
-                      "GES": "GES",  # SHL
-                      "AH": "AH/ROB", "ROB": "AH/ROB",  # SHL
-                      "ASP": "SWL", "PAP": "SWL", "SWL": "SWL",  # SWL
-                      "WLI": "WLI"  # SWL
+                      "ER": "ER", "RER": "ER", "SER": "ER",  # ER
+                      "ES": "GES",  # SHL
+                      "FI": "FI", "FIS": "FI", "GFI": "FI", "OFI": "FI", "PFI": "FI", "SFI": "FI",  # FI
+                      "HBU": "HBU",
+                      "KI": "KI", "GKI": "KI", "WKI": "KI",  # KI
+                      "REI": "REI",  # EI
+                      "SHL": "SHL", "AH": "SHL", "ROB": "SHL",  # SHL
+                      "SKI": "SKI",
+                      "SWL": "SWL", "ASP": "SWL", "PAP": "SWL",  # SWL
+                      "WLI": "WLI",  # SWL
                       }
 
 
