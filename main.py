@@ -10,18 +10,32 @@ from utils import save_image, unpack_results, store_results, get_files
 
 # CONFIG START #
 background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\Background_cutouts\backgrounds\40cm\background_8bit\Train'
-trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\tree_cutouts\trees\40cm\trees_8bit\Train'
-folder_name = 'test'
+trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\tree_cutouts2\trees\trees_8bit\train_trees'
+folder_name = 'test_test'
 
-label_dictionary = {'background': 0, 'ELA': 1, 'BI': 2, 'GES': 3, 'FI': 4, 'KI': 5, 'BU': 6, 'SWL': 7, 'REI': 8,
-                    'ER': 9, 'AH/ROB': 10, 'EI': 11, 'WLI': 12}
+label_dictionary = {'background': 0,
+                    "BAH": 1,
+                    "BI": 2,
+                    "BU": 3,
+                    "EI": 4,
+                    "ELA": 5,
+                    "ER": 6,
+                    "FI": 7,
+                    "GES": 8,
+                    "HBU": 9,
+                    "KI": 10,
+                    "REI": 11,
+                    "SHL": 12,
+                    "SKI": 13,
+                    "SWL": 14,
+                    "WLI": 15}
 
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
 
-sparse_images = 0
+sparse_images = 10
 single_cluster_images = 10
-border_images = 0
+border_images = 10
 dense_images = 10
 
 path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
@@ -214,7 +228,8 @@ def prepare_files_for_unet(destination):
                 print("Permission denied.")
 
             if str(f).rsplit('_', 1)[-1] == 'mask.tif':
-                os.rename(dest / str(f).rsplit('\\')[-1], dest / (str(f).rsplit('\\', 1)[-1].rsplit('_', 1)[0] + '.tif'))
+                os.rename(dest / str(f).rsplit('\\')[-1],
+                          dest / (str(f).rsplit('\\', 1)[-1].rsplit('_', 1)[0] + '.tif'))
 
     print("Copied all files successfully.")
 
@@ -233,4 +248,4 @@ if __name__ == '__main__':
 #           - mulitprocessing mixes the results. As results are calculated per image class,
 #           it should not cause an issue, but may cause other problems or even mistakes in the distribution
 #           (error not fully understood)
-#           - some created tree dictionaries were missing a single class
+#           - percentage of background in overview sometimes over 100%

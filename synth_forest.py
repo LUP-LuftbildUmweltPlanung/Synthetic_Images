@@ -26,8 +26,8 @@ tree_type_grouping = {"BAH": "BAH",  # SHL
                       "EI": "EI", "SE": "EI", "SEI": "EI", "TEI": "EI",  # EI
                       "ELA": "ELA",  # LA
                       "ER": "ER", "RER": "ER", "SER": "ER",  # ER
-                      "ES": "GES",  # SHL
                       "FI": "FI", "FIS": "FI", "GFI": "FI", "OFI": "FI", "PFI": "FI", "SFI": "FI",  # FI
+                      "GES": "GES", "ES": "GES",  # SHL
                       "HBU": "HBU",
                       "KI": "KI", "GKI": "KI", "WKI": "KI",  # KI
                       "REI": "REI",  # EI
@@ -81,7 +81,7 @@ def get_trees(files_path, file_type=None):
     files = get_files(files_path, file_type)
     tree_types = ['background']
     for file in files:
-        tree_type = str(file).rsplit('\\', 1)[-1].rsplit('/', 1)[-1].rsplit('_', 1)[0].upper()
+        tree_type = str(file).rsplit('\\', 1)[-1].rsplit('/', 1)[-1].rsplit('_', 1)[0].rsplit('_', 1)[1].upper()
         if tree_type in tree_type_grouping.keys():
             tree_type = tree_type_grouping[tree_type]
         else:
@@ -224,7 +224,7 @@ def place_cluster(area, area_in_pixel=False):
                 area -- desired area of cluster in m² (unless area_in_pixel = True)
                 area_in_pixel -- if area is provided in pixel or in m² (default False)
     """
-    global background, free_area
+    global background, free_area, edge_mask
     cluster_mask = random_shape(np.min([background.shape[0], background.shape[1]]), shape_type='cluster')
     cluster_area = np.sum(cluster_mask)
 
@@ -257,11 +257,17 @@ def place_cluster(area, area_in_pixel=False):
     temporary_area = np.zeros_like(free_area)
     temporary_area[x_area[0]:x_area[1], y_area[0]:y_area[1]] = cluster_mask
 
-    x_area, y_area, block_mask = set_area(x, y, block_mask, boundaries)
+    contours, hierarchy = cv2.findContours(np.uint8(temporary_area), cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+    # gets contours of the tree
+    try:
+        x_coords = contours[0][:, :, 1].flatten() + x_area[0]  # x coordinates of the contours
+        y_coords = contours[0][:, :, 0].flatten() + y_area[0]  # y coordinates of the contours
 
-    # background[:, :, :3] = np.multiply(background.astype('float64')[:, :, :3],
-    #                                    np.expand_dims(temporary_area, axis=2) * 0.3
-    #                                    + np.int64(np.expand_dims(temporary_area, axis=2) == 0))
+        edge_mask[x_coords, y_coords] = 1
+    except IndexError:
+        pass
+
+    x_area, y_area, block_mask = set_area(x, y, block_mask, boundaries)
 
     background = np.multiply(background.astype('float64'),
                              np.expand_dims(temporary_area, axis=2) * 0.3
@@ -376,9 +382,6 @@ def tree_type_distribution(back=True):
 def finish_image():
     global background, edge_mask
     background = blur_edges(background, edge_mask)
-
-    plt.imshow(background)
-    plt.show()
 
     return background
 
