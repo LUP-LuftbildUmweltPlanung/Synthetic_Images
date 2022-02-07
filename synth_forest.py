@@ -1,4 +1,5 @@
 import warnings
+import pandas as pd
 
 import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
@@ -18,7 +19,7 @@ height_mask = np.empty(0)
 edge_mask = np.empty(0)
 type_to_number = {}
 number_to_type = {}
-trees = []
+trees = {'tree_type': [], 'file': []}
 
 tree_type_grouping = {"BAH": "BAH",  # SHL
                       "BI": "BI", "GBI": "BI",  # BI
@@ -36,6 +37,26 @@ tree_type_grouping = {"BAH": "BAH",  # SHL
                       "SWL": "SWL", "ASP": "SWL", "PAP": "SWL",  # SWL
                       "WLI": "WLI",  # SWL
                       }
+
+tree_type_likelihood = {"BAH": 1,
+                        "BI": 1,
+                        "BU": 1,
+                        "EI": 1,
+                        "ELA": 1,
+                        "ER": 1,
+                        "FI": 1,
+                        "GES": 1,
+                        "HBU": 1,
+                        "KI": 1,
+                        "REI": 1,
+                        "SHL": 1,
+                        "SKI": 1,
+                        "SWL": 1,
+                        "WLI": 1
+                        }
+
+tree_type_likelihood = {k: v / total for total in (sum(tree_type_likelihood.values()),)
+                        for k, v in tree_type_likelihood.items()}
 
 
 def set_background(file_path, pixel_area=1, augment=False, bands=None, reset=True):
@@ -87,9 +108,12 @@ def get_trees(files_path, file_type=None):
         else:
             warnings.warn(f'{tree_type} not in known tree types: {list(tree_type_grouping.keys())}.'
                           f' A new class will be created.')
-        trees.append((file, tree_type))
+        trees['tree_type'].append(tree_type)
+        trees['file'].append(file)
         if tree_type not in tree_types:
             tree_types.append(tree_type)
+
+    trees = pd.DataFrame(trees)
 
     tree_labels = np.arange(len(tree_types), dtype='uint8')
     type_to_number = dict(zip(tree_types, tree_labels))
@@ -100,7 +124,7 @@ def get_trees(files_path, file_type=None):
     return trees, type_to_number, number_to_type
 
 
-def place_tree(distance, area=None, augment=True, cluster=False, tight=False):
+def place_tree(distance, area=None, augment=True, cluster=False, tight=False, tree_type=None):
     """Places a single tree in a given distance of all other trees, updates the image mask and free area respectively.
 
             Keyword arguments:
@@ -121,7 +145,14 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False):
     # else:
     #     kernel_ratio = int(np.round(1 / kernel_ratio, 0))
 
-    tree, tree_type, height = random_tree(trees, augment)  # selects a tree at random from a list of trees
+    if tree_type is None:
+        tree, tree_type, height = random_tree(trees, augment)  # selects a tree at random from a list of trees
+    else:
+        p = 0.8  # probability, that same tree will be placed again
+        if not np.random.uniform() > p:  # so a likelihood of p
+            tree, tree_type, height = random_tree(trees.loc[trees['tree_type'] == tree_type], augment)
+        else:  # 1 - p
+            tree, tree_type, height = random_tree(trees.loc[trees['tree_type'] != tree_type], augment)
     tree_label = type_to_number[tree_type]  # converts tree_type to label
 
     kernel_ratio = 1
@@ -202,12 +233,16 @@ def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True):
     if not fixed_distance:
         distance = 0
 
+    if cluster:
+        tree_type = np.random.choice(list(tree_type_likelihood.keys()), p=list(tree_type_likelihood.values()))
+    else:
+        tree_type = None
+
     full = False
     counter = 0
 
     while not full:
-        full = \
-            place_tree(distance, area, cluster=cluster, tight=cluster)
+        full = place_tree(distance, area, cluster=cluster, tight=cluster, tree_type=tree_type)
         if not full:
             counter += 1
 
@@ -299,7 +334,7 @@ def forest_edge():
     side = np.random.choice(4)
     if side in [0, 1]:  # down or up, x-direction
         move_distance = int(boundaries[0] / 2) \
-                        - np.random.choice(np.arange(- 4 * boundaries[0]//10, 4 * boundaries[0]//10))
+                        - np.random.choice(np.arange(- 4 * boundaries[0] // 10, 4 * boundaries[0] // 10))
         if side == 1:  # up side, down movement
             x_range_cluster = [0, move_distance]
         else:  # down side, up movement
@@ -308,7 +343,7 @@ def forest_edge():
                            int((cluster_mask.shape[1] - boundaries[1]) / 2) + boundaries[1]]
     else:  # left or right, y-direction
         move_distance = int(boundaries[1] / 2) \
-                        - np.random.choice(np.arange(- 4 * boundaries[1]//10, 4 * boundaries[1]//10))
+                        - np.random.choice(np.arange(- 4 * boundaries[1] // 10, 4 * boundaries[1] // 10))
         if side == 2:  # left side, right movement
             y_range_cluster = [0, move_distance]
         else:  # right side, left movement

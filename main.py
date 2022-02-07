@@ -11,7 +11,7 @@ from utils import save_image, unpack_results, store_results, get_files
 # CONFIG START #
 background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\Background_cutouts\backgrounds\40cm\background_8bit\Train'
 trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\tree_cutouts2\trees\trees_8bit\train_trees'
-folder_name = 'test_test'
+folder_name = 'test_test_test'
 
 label_dictionary = {'background': 0,
                     "BAH": 1,

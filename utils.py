@@ -41,9 +41,9 @@ def save_image(path, image, mask, verbose=False):
 
 def random_tree(trees, augment=False):
     """Selects and returns a random tree from a list containing tuples."""
-    tree_idx = np.random.choice(len(trees))
-    tree = load_image(trees[tree_idx][0])
-    tree_type = trees[tree_idx][1]
+    tree_data = trees.sample()
+    tree = load_image(tree_data['file'].item())
+    tree_type = tree_data['tree_type'].item()
     if augment:
         tree = tree_augmentation(tree)
     height = tree.shape[0] + tree.shape[1]  # Could probably be better
