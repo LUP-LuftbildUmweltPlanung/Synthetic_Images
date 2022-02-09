@@ -55,8 +55,8 @@ def tree_augmentation(tree):
     Augmentations are: GridDistortion, Flip, Rotate, RandomScale."""
     transform = A.Compose([
         # A.RandomBrightnessContrast(p=0.3),
-        A.GridDistortion(p=0.3, distort_limit=(-0.1, 0.1),
-                         interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT),
+        # A.GridDistortion(p=0.3, distort_limit=(-0.1, 0.1),
+        #                  interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT),
         A.Flip(p=0.5),
         A.Rotate(p=1.0, interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT, limit=(-180, 180)),
         A.RandomScale(p=0.6, interpolation=cv2.INTER_NEAREST, scale_limit=(-0.3, 0.3))

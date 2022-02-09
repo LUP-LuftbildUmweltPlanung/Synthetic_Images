@@ -9,9 +9,9 @@ import synth_forest as forest
 from utils import save_image, unpack_results, store_results, get_files
 
 # CONFIG START #
-background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\Background_cutouts\backgrounds\40cm\background_8bit\Train'
-trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\tree_cutouts2\trees\trees_8bit\train_trees'
-folder_name = 'test_final'
+background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\Background_cutouts\background_corrected\corrected_8bit\Train'
+trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\tree_cutouts2\trees_radiometric_corrected\trees_8bit\train_trees'
+folder_name = '40cm_750each_Train_radio-corrected'
 
 label_dictionary = {'background': 0,
                     "BAH": 1,
@@ -30,13 +30,13 @@ label_dictionary = {'background': 0,
                     "SWL": 14,
                     "WLI": 15}
 
-area_per_pixel = 0.2 * 0.2
+area_per_pixel = 0.4 * 0.4
 single_tree_distance = 10
 
-sparse_images = 10
-single_cluster_images = 10
-border_images = 10
-dense_images = 10
+sparse_images = 750
+single_cluster_images = 750
+border_images = 750
+dense_images = 750
 
 path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
 unet_format = True
@@ -249,3 +249,4 @@ if __name__ == '__main__':
 #           it should not cause an issue, but may cause other problems or even mistakes in the distribution
 #           (error not fully understood)
 #           - percentage of background in overview sometimes over 100%
+#           - blue/pink fields

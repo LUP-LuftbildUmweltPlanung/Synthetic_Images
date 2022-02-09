@@ -148,7 +148,7 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, tr
     if tree_type is None:
         tree, tree_type, height = random_tree(trees, augment)  # selects a tree at random from a list of trees
     else:
-        p = 0.8  # probability, that same tree will be placed again
+        p = 0.9  # probability, that same tree will be placed again
         if not np.random.uniform() > p:  # so a likelihood of p
             tree, tree_type, height = random_tree(trees.loc[trees['tree_type'] == tree_type], augment)
         else:  # 1 - p
