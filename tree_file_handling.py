@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-directory = r"C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\tree_cutouts2\trees\trees_8bit"
+directory = r"C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\tree_cutouts2\trees_radiometric_corrected\trees_8bit"
 
 directory = Path(directory)
 ori_dir = os.getcwd()
@@ -52,7 +52,7 @@ for tree in test_trees:
 
 print('All 8bit images moved successfully.')
 
-directory = r"C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\tree_cutouts2\trees"
+directory = r"C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\tree_cutouts2\trees_radiometric_corrected\trees_16bit"
 
 directory = Path(directory)
 ori_dir = os.getcwd()
@@ -78,13 +78,13 @@ test_tree_16bit_path = []
 for number in test_trees_16bit:
     test_tree_16bit_path.extend(tree_data_16bit.loc[tree_data_16bit['number'] == number]['path'].tolist())
 
-Path(directory / 'trees_16bit/train_trees').mkdir(parents=True, exist_ok=True)
-Path(directory / 'trees_16bit/test_trees').mkdir(parents=True, exist_ok=True)
+Path(directory / 'train_trees').mkdir(parents=True, exist_ok=True)
+Path(directory / 'test_trees').mkdir(parents=True, exist_ok=True)
 
 for tree in train_tree_16bit_path:
-    os.rename(tree, directory / ('trees_16bit/train_trees/' + str(tree).rsplit('\\', 1)[-1]))
+    os.rename(tree, directory / ('train_trees/' + str(tree).rsplit('\\', 1)[-1]))
 
 for tree in test_tree_16bit_path:
-    os.rename(tree, directory / ('trees_16bit/test_trees/' + str(tree).rsplit('\\', 1)[-1]))
+    os.rename(tree, directory / ('test_trees/' + str(tree).rsplit('\\', 1)[-1]))
 
 print('All 16bit images moved successfully.')
