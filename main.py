@@ -10,8 +10,8 @@ from utils import save_image, unpack_results, store_results, get_files
 
 # CONFIG START #
 background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\Background_cutouts\background_corrected\corrected_8bit\Train'
-trees_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\tree_cutouts2\trees_radiometric_corrected\trees_8bit\train_trees'
-folder_name = '40cm_750each_Train_radio-corrected'
+trees_path = r'Z:\CNN_DeepLearning\+Daten\fuer_synthetic_images\tree_cutouts2\trees20\trees_8bit_radiocorrected\train_trees'
+folder_name = 'reihenbestände_radiocorrected_edge_blur_style'
 
 label_dictionary = {'background': 0,
                     "BAH": 1,
@@ -30,16 +30,16 @@ label_dictionary = {'background': 0,
                     "SWL": 14,
                     "WLI": 15}
 
-area_per_pixel = 0.4 * 0.4
+area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
 
-sparse_images = 750
-single_cluster_images = 750
-border_images = 750
-dense_images = 750
+sparse_images = 10
+single_cluster_images = 10
+border_images = 10
+dense_images = 10
 
 path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
-unet_format = True
+#unet_format = True
 
 verbose = False
 # CONFIG END #
