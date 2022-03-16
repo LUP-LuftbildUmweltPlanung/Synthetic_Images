@@ -451,5 +451,3 @@ def detailed_results(show=False):
         print(f'Percentage without background: {tree_type_distribution(back=False)}.')
 
     return tree_counter, tree_type_counter, tree_type_distribution(), tree_type_distribution(back=False)
-
-print('Funky Github Test')
