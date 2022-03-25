@@ -8,6 +8,7 @@ from skimage.transform import rescale, resize, downscale_local_mean
 from bezier_shape import random_shape
 from utils import *
 
+fill_with_same_tree = False
 area_per_pixel = 0
 tree_counter = 0
 tree_type_counter = {}
@@ -20,6 +21,7 @@ edge_mask = np.empty(0)
 type_to_number = {}
 number_to_type = {}
 trees = {'tree_type': [], 'file': []}
+main_trees = None
 
 tree_type_grouping = {"BAH": "BAH",  # SHL
                       "BI": "BI", "GBI": "BI",  # BI
@@ -96,7 +98,7 @@ def get_trees(files_path, file_type=None):
             files_path -- path to folder containing tree image files
             file_type -- type of tree image files, defaults to 'tif' (default None)
     """
-    global type_to_number, number_to_type, trees
+    global type_to_number, number_to_type, trees, main_trees
     if file_type is None:
         file_type = 'tif'
     files = get_files(files_path, file_type)
@@ -114,6 +116,8 @@ def get_trees(files_path, file_type=None):
             tree_types.append(tree_type)
 
     trees = pd.DataFrame(trees)
+    if fill_with_same_tree:
+        main_trees = trees.copy()
 
     tree_labels = np.arange(len(tree_types), dtype='uint8')
     type_to_number = dict(zip(tree_types, tree_labels))
@@ -145,15 +149,22 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, tr
     # else:
     #     kernel_ratio = int(np.round(1 / kernel_ratio, 0))
 
-    if tree_type is None:
-        tree, tree_type, height = random_tree(trees, augment)  # selects a tree at random from a list of trees
+    p = 0.9  # probability, that same tree will be placed again
+    if fill_with_same_tree and cluster:
+        if not np.random.uniform() > p:
+            tree, tree_type, height = random_tree(main_trees.loc[trees['file'] == tree_type], augment)
+        else:
+            tree, tree_type, height = random_tree(trees.loc[trees['file'] != tree_type], augment)
+        tree_label = type_to_number[tree_type]  # converts tree_type to label
     else:
-        p = 0.9  # probability, that same tree will be placed again
-        if not np.random.uniform() > p:  # so a likelihood of p
-            tree, tree_type, height = random_tree(trees.loc[trees['tree_type'] == tree_type], augment)
-        else:  # 1 - p
-            tree, tree_type, height = random_tree(trees.loc[trees['tree_type'] != tree_type], augment)
-    tree_label = type_to_number[tree_type]  # converts tree_type to label
+        if tree_type is None:
+            tree, tree_type, height = random_tree(trees, augment)  # selects a tree at random from a list of trees
+        else:
+            if not np.random.uniform() > p:  # so a likelihood of p
+                tree, tree_type, height = random_tree(trees.loc[trees['tree_type'] == tree_type], augment)
+            else:  # 1 - p
+                tree, tree_type, height = random_tree(trees.loc[trees['tree_type'] != tree_type], augment)
+        tree_label = type_to_number[tree_type]  # converts tree_type to label
 
     kernel_ratio = 1
 
@@ -230,19 +241,33 @@ def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True):
                 cluster -- if a cluster or a forest is being filled (default False)
                 fixed_distance -- if distance should be fixed to distance value or depending on tree size (default True)
     """
+    global main_trees
     if not fixed_distance:
         distance = 0
 
-    if cluster:
-        tree_type = np.random.choice(list(tree_type_likelihood.keys()), p=list(tree_type_likelihood.values()))
+    if fill_with_same_tree and cluster:
+        tree_idx = np.random.randint(len(main_trees['file']))
+        tree = main_trees['file'].pop(tree_idx)  # returns the file-path of a specific tree
+        main_trees['tree_type'].pop(tree_idx)
+    elif cluster:
+        tree = None
+        counter = 0
+        while tree not in trees['tree_type'].tolist():
+            tree = np.random.choice(list(tree_type_likelihood.keys()), p=list(tree_type_likelihood.values()))
+            counter += 1
+            if counter > 10:
+                available_types = set(trees['tree_type'].tolist())
+                warnings.warn(f'Tree type {tree} selected from Likelihood list not found in image files. '
+                              f'Available types: {available_types}. {counter - 1} tries.')
+
+        # returns a type of tree, whith trees being selected if they are of said type
     else:
-        tree_type = None
+        tree = None
 
     full = False
     counter = 0
-
     while not full:
-        full = place_tree(distance, area, cluster=cluster, tight=cluster, tree_type=tree_type)
+        full = place_tree(distance, area, cluster=cluster, tight=cluster, tree_type=tree)
         if not full:
             counter += 1
 
@@ -416,8 +441,10 @@ def tree_type_distribution(back=True):
 
 def finish_image():
     global background, edge_mask
+    kernel = np.ones([3, 3], dtype='int64')
+    edge_mask = np.int64(convolve2d(edge_mask == 1, kernel, mode='same') > 0)
+    edge_mask[mask > 0] = 0
     background = blur_edges(background, edge_mask)
-
     return background
 
 

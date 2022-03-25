@@ -9,9 +9,9 @@ import synth_forest as forest
 from utils import save_image, unpack_results, store_results, get_files
 
 # CONFIG START #
-background_path = r'C:\DeepLearning_Local\+Daten\+Waldmasken\fuer_synthetic_images\Background_cutouts\background_corrected\corrected_8bit\Train'
-trees_path = r'Z:\CNN_DeepLearning\+Daten\fuer_synthetic_images\tree_cutouts2\trees20\trees_8bit_radiocorrected\train_trees'
-folder_name = 'reihenbestände_radiocorrected_edge_blur_style'
+background_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\Background_cutouts\background_corrected\corrected_8bit\20cm\Train\ps400'
+trees_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\tree_cutouts3\trees\train\New_adjusted'
+folder_name = 'test2'
 
 label_dictionary = {'background': 0,
                     "BAH": 1,
@@ -33,18 +33,19 @@ label_dictionary = {'background': 0,
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
 
-sparse_images = 10
-single_cluster_images = 10
+sparse_images = 0
+single_cluster_images = 0
 border_images = 10
 dense_images = 10
 
 path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
-#unet_format = True
 
+fill_with_same_tree = True
 verbose = False
 # CONFIG END #
 
 forest.verbose = verbose
+forest.fill_with_same_tree = fill_with_same_tree
 if path is None:
     path = os.getcwd()
 path = Path(path)

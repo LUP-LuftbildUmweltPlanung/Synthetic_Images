@@ -1,8 +1,10 @@
 import glob
 import os
-from pathlib import Path
 
+from pathlib import Path
+from osgeo import gdal, gdal_array
 from scipy.ndimage.filters import gaussian_filter
+
 import albumentations as A
 import cv2
 import numpy as np
@@ -17,11 +19,25 @@ def get_files(directory, file_type):
     os.chdir(ori_dir)
     return files
 
+# LEGACY
+# def load_image(path, bands=None):
+#     """Loads a single image file from a provided path. Reduces bands if bands variable is provided."""
+#     path = Path(path)
+#     image = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+#     if bands is None:
+#         return image
+#     else:
+#         return image[:, :, :bands]
+
 
 def load_image(path, bands=None):
-    """Loads a single image file from a provided path. Reduces bands if bands variable is provided."""
-    path = Path(path)
-    image = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+    gdal_image = gdal.Open(str(path), gdal.GA_ReadOnly)
+    width = gdal_image.RasterXSize
+    height = gdal_image.RasterYSize
+    img_bands = gdal_image.RasterCount
+    image = np.zeros((height, width, img_bands), gdal_array.GDALTypeCodeToNumericTypeCode(gdal_image.GetRasterBand(1).DataType))
+    for band in range(img_bands):
+        image[:, :, band] = gdal_image.GetRasterBand(band + 1).ReadAsArray()
     if bands is None:
         return image
     else:
@@ -32,8 +48,6 @@ def save_image(path, image, mask, verbose=False):
     """Stores image in provided path."""
     Path(str(path).rsplit('/', 1)[0].rsplit('\\', 1)[0]).mkdir(parents=True, exist_ok=True)
     path = Path(path)
-    print(image)
-    print(path)
     cv2.imwrite(str(path), image)
     mask_path = str(path).rsplit('.', 1)[0] + '_mask.' + str(path).rsplit('.', 1)[1]
     cv2.imwrite(mask_path, mask)
@@ -43,7 +57,10 @@ def save_image(path, image, mask, verbose=False):
 
 def random_tree(trees, augment=False):
     """Selects and returns a random tree from a list containing tuples."""
-    tree_data = trees.sample()
+    try:
+        tree_data = trees.sample()
+    except:
+        print(trees)
     tree = load_image(tree_data['file'].item())
     tree_type = tree_data['tree_type'].item()
     if augment:
@@ -54,14 +71,14 @@ def random_tree(trees, augment=False):
 
 def tree_augmentation(tree):
     """Performs image augmentations on a provided image.
-    Augmentations are: GridDistortion, Flip, Rotate, RandomScale."""
+    Augmentations are: Flip, Rotate, RandomScale."""
     transform = A.Compose([
         # A.RandomBrightnessContrast(p=0.3),
         # A.GridDistortion(p=0.3, distort_limit=(-0.1, 0.1),
         #                  interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT),
         A.Flip(p=0.5),
         A.Rotate(p=1.0, interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT, limit=(-180, 180)),
-        A.RandomScale(p=0.6, interpolation=cv2.INTER_NEAREST, scale_limit=(-0.3, 0.3))
+        A.RandomScale(p=0.7, interpolation=cv2.INTER_NEAREST, scale_limit=(0, 0.2))
     ])
     return transform(image=tree)['image']
 
