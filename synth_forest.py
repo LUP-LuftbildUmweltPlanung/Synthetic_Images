@@ -116,8 +116,7 @@ def get_trees(files_path, file_type=None):
             tree_types.append(tree_type)
 
     trees = pd.DataFrame(trees)
-    if fill_with_same_tree:
-        main_trees = trees.copy()
+    main_trees = trees.copy()
 
     tree_labels = np.arange(len(tree_types), dtype='uint8')
     type_to_number = dict(zip(tree_types, tree_labels))
@@ -152,7 +151,7 @@ def place_tree(distance, area=None, augment=True, cluster=False, tight=False, tr
     p = 0.9  # probability, that same tree will be placed again
     if fill_with_same_tree and cluster:
         if not np.random.uniform() > p:
-            tree, tree_type, height = random_tree(main_trees.loc[trees['file'] == tree_type], augment)
+            tree, tree_type, height = random_tree(main_trees.loc[main_trees['file'] == tree_type], augment)
         else:
             tree, tree_type, height = random_tree(trees.loc[trees['file'] != tree_type], augment)
         tree_label = type_to_number[tree_type]  # converts tree_type to label
@@ -246,9 +245,7 @@ def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True):
         distance = 0
 
     if fill_with_same_tree and cluster:
-        tree_idx = np.random.randint(len(main_trees['file']))
-        tree = main_trees['file'].pop(tree_idx)  # returns the file-path of a specific tree
-        main_trees['tree_type'].pop(tree_idx)
+        tree = main_trees['file'].item()
     elif cluster:
         tree = None
         counter = 0

@@ -1,27 +1,30 @@
 import os
 import shutil
+import warnings
 import numpy as np
 from pathlib import Path
 from time import time
 from multiprocessing import cpu_count, Pool, current_process
 
+import pandas as pd
+
 import synth_forest as forest
 from utils import save_image, unpack_results, store_results, get_files
 
 # CONFIG START #
-background_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\Background_cutouts\background_corrected\corrected_8bit\20cm\Train\ps400'
-trees_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\tree_cutouts3\trees\train\New_adjusted'
-folder_name = 'test2'
+background_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\Background_cutouts\large_backgrounds\crops\New_adjusted'
+trees_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\tree_cutouts3\trees\combined\train_trees'
+folder_name = 'train'
 
 label_dictionary = {'background': 0,
-                    "BAH": 1,
+                    "AH": 1,
                     "BI": 2,
                     "BU": 3,
                     "EI": 4,
                     "ELA": 5,
                     "ER": 6,
-                    "FI": 7,
-                    "GES": 8,
+                    "ES": 7,
+                    "FI": 8,
                     "HBU": 9,
                     "KI": 10,
                     "REI": 11,
@@ -33,10 +36,10 @@ label_dictionary = {'background': 0,
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
 
-sparse_images = 0
-single_cluster_images = 0
-border_images = 10
-dense_images = 10
+sparse_images = 1037
+single_cluster_images = 1037
+border_images = 1037
+dense_images = 1037
 
 path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
 
@@ -54,6 +57,7 @@ forest.get_trees(trees_path)
 type_to_number = forest.type_to_number
 number_to_type = forest.number_to_type
 tree_list = forest.trees
+main_trees = forest.main_trees
 
 if label_dictionary is not None:
     for label in type_to_number.keys():
@@ -85,7 +89,7 @@ def sparse_image(idx):
            trees, tree_types, tree_type_distribution, tree_type_distribution_no_back
 
 
-def single_cluster_image(idx):
+def single_cluster_image(*arg):
     """Creates an image containing a single, small, dense cluster and sparsely placed trees.
 
                 Keyword arguments:
@@ -94,6 +98,9 @@ def single_cluster_image(idx):
     forest.type_to_number = type_to_number
     forest.number_to_type = number_to_type
     forest.trees = tree_list
+    if fill_with_same_tree:
+        forest.main_trees = pd.DataFrame({'tree_type': [arg[1][0]], 'file': [arg[1][1]]})
+    idx = arg[0]
 
     forest.set_background(background_path, area_per_pixel, augment=True)
     max_area = forest.background.shape[0] * forest.background.shape[1] * area_per_pixel
@@ -109,7 +116,7 @@ def single_cluster_image(idx):
            trees, tree_types, tree_type_distribution, tree_type_distribution_no_back
 
 
-def border_image(idx):
+def border_image(*arg):
     """Creates an image containing a dense forest border and sparsely placed trees.
 
                 Keyword arguments:
@@ -118,6 +125,9 @@ def border_image(idx):
     forest.type_to_number = type_to_number
     forest.number_to_type = number_to_type
     forest.trees = tree_list
+    if fill_with_same_tree:
+        forest.main_trees = pd.DataFrame({'tree_type': [arg[1][0]], 'file': [arg[1][1]]})
+    idx = arg[0]
 
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.forest_edge()
@@ -130,7 +140,7 @@ def border_image(idx):
            trees, tree_types, tree_type_distribution, tree_type_distribution_no_back
 
 
-def dense_image(idx):
+def dense_image(*arg):
     """Creates an image containing densely packed trees.
 
                 Keyword arguments:
@@ -139,6 +149,9 @@ def dense_image(idx):
     forest.type_to_number = type_to_number
     forest.number_to_type = number_to_type
     forest.trees = tree_list
+    if fill_with_same_tree:
+        forest.main_trees = pd.DataFrame({'tree_type': [arg[1][0]], 'file': [arg[1][1]]})
+    idx = arg[0]
 
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.dense_forest()
@@ -152,6 +165,7 @@ def dense_image(idx):
 
 def create_images():
     """Creates the provided amount of images at the provided location."""
+    global main_trees
     cpus = cpu_count() - 1
     pool = Pool(processes=cpus, initializer=np.random.seed(current_process().pid))
     labels_and_paths = []
@@ -164,28 +178,64 @@ def create_images():
         store_results(results[1:], path=path / (folder_name + '/Sparse'))
         print(f'{sparse_images} sparse images have been created in {time() - start:.2f} seconds.\n')
 
+    global single_cluster_images
     if single_cluster_images:
         start = time()
-        results = pool.map(single_cluster_image, range(single_cluster_images))
+        if fill_with_same_tree:
+            if single_cluster_images > len(main_trees):
+                single_cluster_images = len(main_trees)
+                warnings.warn(f"Not enough trees available. "
+                              f"Only {single_cluster_images} single_cluster_images will be created.")
+            else:
+                main_trees = main_trees.sample(frac=1)
+            results = pool.starmap(single_cluster_image, zip(range(single_cluster_images),
+                                                             main_trees.head(single_cluster_images).values.tolist()))
+        else:
+            results = pool.map(single_cluster_image, range(single_cluster_images))
         results = unpack_results(results, single_cluster_images)
         labels_and_paths += results[0]
         store_results(results[1:], path=path / (folder_name + '/Single_cluster'))
+        main_trees = tree_list
         print(f'{single_cluster_images} single cluster images have been created in {time() - start:.2f} seconds.\n')
 
+    global border_images
     if border_images:
         start = time()
-        results = pool.map(border_image, range(border_images))
+        if fill_with_same_tree:
+            if border_images > len(main_trees):
+                border_images = len(main_trees)
+                warnings.warn(f"Not enough trees available. "
+                              f"Only {border_images} border_images will be created.")
+            else:
+                main_trees = main_trees.sample(frac=1)
+            results = pool.starmap(border_image, zip(range(border_images),
+                                                     main_trees.head(border_images).values.tolist()))
+        else:
+            results = pool.map(border_image, range(border_images))
         results = unpack_results(results, border_images)
         labels_and_paths += results[0]
         store_results(results[1:], path=path / (folder_name + '/Border'))
+        main_trees = tree_list
         print(f'{border_images} border images have been created in {time() - start:.2f} seconds.\n')
 
+    global dense_images
     if dense_images:
         start = time()
-        results = pool.map(dense_image, range(dense_images))
+        if fill_with_same_tree:
+            if dense_images > len(main_trees):
+                dense_images = len(main_trees)
+                warnings.warn(f"Not enough trees available. "
+                              f"Only {dense_images} dense_images will be created.")
+            else:
+                main_trees = main_trees.sample(frac=1)
+            results = pool.starmap(dense_image, zip(range(dense_images),
+                                                    main_trees.head(dense_images).values.tolist()))
+        else:
+            results = pool.map(dense_image, range(dense_images))
         results = unpack_results(results, dense_images)
         labels_and_paths += results[0]
         store_results(results[1:], path=path / (folder_name + '/Dense'))
+        main_trees = tree_list
         print(f'{dense_images} dense images have been created in {time() - start:.2f} seconds.\n')
 
     with open(path / (folder_name + '/labels.txt'), 'w') as file:
@@ -246,8 +296,5 @@ if __name__ == '__main__':
 # functions: - option to disable multiprocessing
 #
 # issues:   - clusters are placed at random, without considering free area
-#           - mulitprocessing mixes the results. As results are calculated per image class,
-#           it should not cause an issue, but may cause other problems or even mistakes in the distribution
-#           (error not fully understood)
 #           - percentage of background in overview sometimes over 100%
 #           - blue/pink fields
