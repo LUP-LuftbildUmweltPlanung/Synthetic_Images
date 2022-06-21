@@ -140,7 +140,9 @@ def place_in_background(tree, tree_label, x_area, y_area, height, background, ma
     """Places a single tree with the provided label at the provided position in both background and mask."""
     tree_mask = tree != 0  # mask to only remove tree part of image
     tree_mask[height_mask[x_area[0]:x_area[1], y_area[0]:y_area[1]] > height] = 0
-    tree_mask = fill_contours(tree_mask)
+    #  tree_mask = fill_contours(tree_mask) - why was this ever used?
+    tree_mask = np.sum(tree_mask, axis=2) > 0
+    tree_mask = np.expand_dims(tree_mask, axis=2)
 
     contours, hierarchy = cv2.findContours(np.uint8(tree_mask[:, :, 0]), cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     # gets contours of the tree

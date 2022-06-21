@@ -10,6 +10,7 @@ from utils import *
 
 fill_with_same_tree = False
 area_per_pixel = 0
+shadow_percentile = 0
 tree_counter = 0
 tree_type_counter = {}
 verbose = False
@@ -22,41 +23,56 @@ type_to_number = {}
 number_to_type = {}
 trees = {'tree_type': [], 'file': []}
 main_trees = None
-
-tree_type_grouping = {"BAH": "BAH",  # SHL
-                      "BI": "BI", "GBI": "BI",  # BI
+##MIT BODO
+tree_type_grouping = {"BI": "BI", "GBI": "BI",  # BI
                       "BU": "BU", "RBU": "BU",  # BU
                       "EI": "EI", "SE": "EI", "SEI": "EI", "TEI": "EI",  # EI
                       "ELA": "ELA",  # LA
+                      "ES": "ES", "GES": "ES",  # SHL
                       "ER": "ER", "RER": "ER", "SER": "ER",  # ER
                       "FI": "FI", "FIS": "FI", "GFI": "FI", "OFI": "FI", "PFI": "FI", "SFI": "FI",  # FI
-                      "GES": "GES", "ES": "GES",  # SHL
-                      "HBU": "HBU",
-                      "KI": "KI", "GKI": "KI", "WKI": "KI",  # KI
+                      "KI": "KI", "GKI": "KI", "SKI": "KI", "WKI": "KI",  # KI
                       "REI": "REI",  # EI
-                      "SHL": "SHL", "AH": "SHL", "ROB": "SHL",  # SHL
-                      "SKI": "SKI",
+                      "SHL": "SHL", "ROB": "SHL",  # SHL
                       "SWL": "SWL", "ASP": "SWL", "PAP": "SWL",  # SWL
                       "WLI": "WLI",  # SWL
                       }
-
-tree_type_likelihood = {"BAH": 1,
-                        "BI": 5,
+##OHNE BODO
+# tree_type_grouping = {"BI": "BI", "GBI": "BI",  # BI
+#                       "BU": "BU", "RBU": "BU",  # BU
+#                       "EI": "EI", "SE": "EI", "SEI": "EI", "TEI": "EI",  # EI
+#                       "ELA": "ELA",  # LA
+#                       "ER": "ER", "RER": "ER", "SER": "ER",  # ER
+#                       "FI": "FI", "FIS": "FI", "GFI": "FI", "OFI": "FI", "PFI": "FI", "SFI": "FI",  # FI
+#                       "KI": "KI", "GKI": "KI", "SKI": "KI", "WKI": "KI",  # KI
+#                       "SHL": "SHL", "ROB": "SHL",  # SHL
+#                       "SWL": "SWL", "ASP": "SWL", "PAP": "SWL",  # SWL
+#                       }
+##MIT BODO
+tree_type_likelihood = {"BI": 5,
                         "BU": 4,
                         "EI": 1,
                         "ELA": 3,
                         "ER": 2,
                         "FI": 7,
                         "GES": 1,
-                        "HBU": 1,
                         "KI": 6,
                         "REI": 1,
                         "SHL": 1,
-                        "SKI": 1,
                         "SWL": 1,
                         "WLI": 1
                         }
-
+##OHNE BODO
+# tree_type_likelihood = {"BI": 5,
+#                         "BU": 4,
+#                         "EI": 1,
+#                         "ELA": 3,
+#                         "ER": 2,
+#                         "FI": 7,
+#                         "KI": 6,
+#                         "SHL": 1,
+#                         "SWL": 1,
+#                        }
 tree_type_likelihood = {k: v / total for total in (sum(tree_type_likelihood.values()),)
                         for k, v in tree_type_likelihood.items()}
 
@@ -250,6 +266,7 @@ def fill_with_trees(distance, area=None, cluster=False, fixed_distance=True):
         tree = None
         counter = 0
         while tree not in trees['tree_type'].tolist():
+            warnings.warn(f"Tree_Type_Likelihoods {tree_type_likelihood} should be reviewed.")
             tree = np.random.choice(list(tree_type_likelihood.keys()), p=list(tree_type_likelihood.values()))
             counter += 1
             if counter > 10:
@@ -327,7 +344,7 @@ def place_cluster(area, area_in_pixel=False):
     x_area, y_area, block_mask = set_area(x, y, block_mask, boundaries)
 
     background = np.multiply(background.astype('float64'),
-                             np.expand_dims(temporary_area, axis=2) * 0.3
+                             np.expand_dims(temporary_area, axis=2) * shadow_percentile
                              + np.int64(np.expand_dims(temporary_area, axis=2) == 0))
     background = np.round(background, 0).astype('uint8')
 
@@ -339,7 +356,7 @@ def place_cluster(area, area_in_pixel=False):
 def dense_forest():
     """Places a shadow on the full background and fills the image with trees."""
     global background
-    background = np.multiply(background.astype('float64'), 0.3)
+    background = np.multiply(background.astype('float64'), shadow_percentile)
     background = np.round(background, 0).astype('uint8')
     fill_with_trees(0, cluster=True)
 
@@ -403,7 +420,7 @@ def forest_edge():
             free_area[:, :block_mask.shape[1]] *= block_mask == 0
 
     background[:, :, :3] = np.multiply(background.astype('float64')[:, :, :3],
-                                       np.expand_dims(temporary_area, axis=2) * 0.3
+                                       np.expand_dims(temporary_area, axis=2) * shadow_percentile
                                        + np.int64(np.expand_dims(temporary_area, axis=2) == 0))
     background = np.round(background, 0).astype('uint8')
 

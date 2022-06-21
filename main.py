@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 from pathlib import Path
 from time import time
+from itertools import repeat
 from multiprocessing import cpu_count, Pool, current_process
 
 import pandas as pd
@@ -12,34 +13,43 @@ import synth_forest as forest
 from utils import save_image, unpack_results, store_results, get_files
 
 # CONFIG START #
-background_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\Background_cutouts\large_backgrounds\crops\New_adjusted'
-trees_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\tree_cutouts3\trees\combined\train_trees'
-folder_name = 'train'
-
+background_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\Background_cutouts\large_backgrounds\crops\New_adjusted\validation'
+trees_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\tree_cutouts_2merged3\trees\+mit_bodo\combined\test_trees'
+folder_name = 'testtestest'
+##MIT BODO
 label_dictionary = {'background': 0,
-                    "AH": 1,
-                    "BI": 2,
-                    "BU": 3,
-                    "EI": 4,
-                    "ELA": 5,
-                    "ER": 6,
-                    "ES": 7,
-                    "FI": 8,
-                    "HBU": 9,
-                    "KI": 10,
-                    "REI": 11,
-                    "SHL": 12,
-                    "SKI": 13,
-                    "SWL": 14,
-                    "WLI": 15}
+                    "BI": 1,
+                    "BU": 2,
+                    "EI": 3,
+                    "ELA": 4,
+                    "ER": 5,
+                    "ES": 6,
+                    "FI": 7,
+                    "KI": 8,
+                    "REI": 9,
+                    "SHL": 10,
+                    "SWL": 11,
+                    "WLI": 12}
+##OHNE BODO
+# label_dictionary = {'background': 0,
+#                     "BI": 1,
+#                     "BU": 2,
+#                     "EI": 3,
+#                     "ELA": 4,
+#                     "ER": 5,
+#                     "FI": 6,
+#                     "KI": 7,
+#                     "SHL": 8,
+#                     "SWL": 9}
 
 area_per_pixel = 0.2 * 0.2
 single_tree_distance = 10
+shadow_percentile = 0.05
 
-sparse_images = 1037
-single_cluster_images = 1037
-border_images = 1037
-dense_images = 1037
+sparse_images = 5
+single_cluster_images = 5
+border_images = 5
+dense_images = 5
 
 path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
 
@@ -47,37 +57,23 @@ fill_with_same_tree = True
 verbose = False
 # CONFIG END #
 
-forest.verbose = verbose
-forest.fill_with_same_tree = fill_with_same_tree
 if path is None:
     path = os.getcwd()
 path = Path(path)
 
-forest.get_trees(trees_path)
-type_to_number = forest.type_to_number
-number_to_type = forest.number_to_type
-tree_list = forest.trees
-main_trees = forest.main_trees
 
-if label_dictionary is not None:
-    for label in type_to_number.keys():
-        if label not in label_dictionary.keys():
-            class_value = len(label_dictionary.keys())
-            label_dictionary[label] = class_value
-
-    type_to_number = label_dictionary
-    number_to_type = dict((v, k) for k, v in type_to_number.items())
-
-
-def sparse_image(idx):
+def sparse_image(*arg):
     """Creates an image containing sparsely placed trees.
 
                 Keyword arguments:
                 idx -- index of the current image to be used when storing mask and image
     """
-    forest.type_to_number = type_to_number
-    forest.number_to_type = number_to_type
-    forest.trees = tree_list
+    forest.verbose = arg[1]
+    forest.fill_with_same_tree = arg[2]
+    forest.type_to_number = arg[3]
+    forest.number_to_type = {v: k for k, v in arg[3].items()}
+    forest.trees = arg[4]
+    idx = arg[0]
 
     forest.set_background(background_path, area_per_pixel, augment=True)
     forest.fill_with_trees(single_tree_distance)
@@ -95,11 +91,14 @@ def single_cluster_image(*arg):
                 Keyword arguments:
                 idx -- index of the current image to be used when storing mask and image
     """
-    forest.type_to_number = type_to_number
-    forest.number_to_type = number_to_type
-    forest.trees = tree_list
+    forest.shadow_percentile = shadow_percentile
+    forest.verbose = arg[1]
+    forest.fill_with_same_tree = arg[2]
+    forest.type_to_number = arg[3]
+    forest.number_to_type = {v: k for k, v in arg[3].items()}
+    forest.trees = arg[4]
     if fill_with_same_tree:
-        forest.main_trees = pd.DataFrame({'tree_type': [arg[1][0]], 'file': [arg[1][1]]})
+        forest.main_trees = pd.DataFrame({'tree_type': [arg[5][0]], 'file': [arg[5][1]]})
     idx = arg[0]
 
     forest.set_background(background_path, area_per_pixel, augment=True)
@@ -122,11 +121,14 @@ def border_image(*arg):
                 Keyword arguments:
                 idx -- index of the current image to be used when storing mask and image
     """
-    forest.type_to_number = type_to_number
-    forest.number_to_type = number_to_type
-    forest.trees = tree_list
+    forest.shadow_percentile = shadow_percentile
+    forest.verbose = arg[1]
+    forest.fill_with_same_tree = arg[2]
+    forest.type_to_number = arg[3]
+    forest.number_to_type = {v: k for k, v in arg[3].items()}
+    forest.trees = arg[4]
     if fill_with_same_tree:
-        forest.main_trees = pd.DataFrame({'tree_type': [arg[1][0]], 'file': [arg[1][1]]})
+        forest.main_trees = pd.DataFrame({'tree_type': [arg[5][0]], 'file': [arg[5][1]]})
     idx = arg[0]
 
     forest.set_background(background_path, area_per_pixel, augment=True)
@@ -146,11 +148,14 @@ def dense_image(*arg):
                 Keyword arguments:
                 idx -- index of the current image to be used when storing mask and image
     """
-    forest.type_to_number = type_to_number
-    forest.number_to_type = number_to_type
-    forest.trees = tree_list
+    forest.shadow_percentile = shadow_percentile
+    forest.verbose = arg[1]
+    forest.fill_with_same_tree = arg[2]
+    forest.type_to_number = arg[3]
+    forest.number_to_type = {v: k for k, v in arg[3].items()}
+    forest.trees = arg[4]
     if fill_with_same_tree:
-        forest.main_trees = pd.DataFrame({'tree_type': [arg[1][0]], 'file': [arg[1][1]]})
+        forest.main_trees = pd.DataFrame({'tree_type': [arg[5][0]], 'file': [arg[5][1]]})
     idx = arg[0]
 
     forest.set_background(background_path, area_per_pixel, augment=True)
@@ -163,16 +168,16 @@ def dense_image(*arg):
            trees, tree_types, tree_type_distribution, tree_type_distribution_no_back
 
 
-def create_images():
+def create_images(type_to_number, tree_list, main_trees):
     """Creates the provided amount of images at the provided location."""
-    global main_trees
     cpus = cpu_count() - 1
     pool = Pool(processes=cpus, initializer=np.random.seed(current_process().pid))
     labels_and_paths = []
 
     if sparse_images:
         start = time()
-        results = pool.map(sparse_image, range(sparse_images))
+        results = pool.starmap(sparse_image, zip(range(sparse_images), repeat(verbose), repeat(fill_with_same_tree),
+                                                 repeat(type_to_number), repeat(tree_list)))
         results = unpack_results(results, sparse_images)
         labels_and_paths += results[0]
         store_results(results[1:], path=path / (folder_name + '/Sparse'))
@@ -189,9 +194,13 @@ def create_images():
             else:
                 main_trees = main_trees.sample(frac=1)
             results = pool.starmap(single_cluster_image, zip(range(single_cluster_images),
+                                                             repeat(verbose), repeat(fill_with_same_tree),
+                                                             repeat(type_to_number), repeat(tree_list),
                                                              main_trees.head(single_cluster_images).values.tolist()))
         else:
-            results = pool.map(single_cluster_image, range(single_cluster_images))
+            results = pool.starmap(single_cluster_image, zip(range(single_cluster_images),
+                                                             repeat(verbose), repeat(fill_with_same_tree),
+                                                             repeat(type_to_number), repeat(tree_list)))
         results = unpack_results(results, single_cluster_images)
         labels_and_paths += results[0]
         store_results(results[1:], path=path / (folder_name + '/Single_cluster'))
@@ -209,9 +218,13 @@ def create_images():
             else:
                 main_trees = main_trees.sample(frac=1)
             results = pool.starmap(border_image, zip(range(border_images),
+                                                     repeat(verbose), repeat(fill_with_same_tree),
+                                                     repeat(type_to_number), repeat(tree_list),
                                                      main_trees.head(border_images).values.tolist()))
         else:
-            results = pool.map(border_image, range(border_images))
+            results = pool.starmap(border_image, zip(range(border_images),
+                                                     repeat(verbose), repeat(fill_with_same_tree),
+                                                     repeat(type_to_number), repeat(tree_list)))
         results = unpack_results(results, border_images)
         labels_and_paths += results[0]
         store_results(results[1:], path=path / (folder_name + '/Border'))
@@ -229,9 +242,13 @@ def create_images():
             else:
                 main_trees = main_trees.sample(frac=1)
             results = pool.starmap(dense_image, zip(range(dense_images),
+                                                    repeat(verbose), repeat(fill_with_same_tree),
+                                                    repeat(type_to_number), repeat(tree_list),
                                                     main_trees.head(dense_images).values.tolist()))
         else:
-            results = pool.map(dense_image, range(dense_images))
+            results = pool.starmap(dense_image, zip(range(dense_images),
+                                                    repeat(verbose), repeat(fill_with_same_tree),
+                                                    repeat(type_to_number), repeat(tree_list)))
         results = unpack_results(results, dense_images)
         labels_and_paths += results[0]
         store_results(results[1:], path=path / (folder_name + '/Dense'))
@@ -286,7 +303,28 @@ def prepare_files_for_unet(destination):
 
 
 if __name__ == '__main__':
-    create_images()
+    forest.get_trees(trees_path)
+    type_to_number = forest.type_to_number
+    number_to_type = forest.number_to_type
+    tree_list = forest.trees
+    main_trees = forest.main_trees
+
+    warn = False
+    if label_dictionary is not None:
+        for label in type_to_number.keys():
+            if label not in label_dictionary.keys():
+                class_value = len(label_dictionary.keys())
+                label_dictionary[label] = class_value
+                warn = True
+
+        type_to_number = label_dictionary
+        number_to_type = dict((v, k) for k, v in type_to_number.items())
+
+        if warn:
+            warnings.warn(
+                f"Provided label dictionary did not cover all tree types found. It was updated to: {type_to_number}.")
+
+    create_images(type_to_number, tree_list, main_trees)
     prepare_files_for_unet(destination=path / folder_name / "Unet_Format")
 
 # notes:    - update documentation
