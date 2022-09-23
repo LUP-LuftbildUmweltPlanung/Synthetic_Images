@@ -13,9 +13,9 @@ import synth_forest as forest
 from utils import save_image, unpack_results, store_results, get_files
 
 # CONFIG START #
-background_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\Background_cutouts\large_backgrounds\crops\New_adjusted\validation'
-trees_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Daten\tree_cutouts_2merged3\trees\+mit_bodo\combined\test_trees'
-folder_name = 'testtestest'
+background_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Code\Example_Tree_Data\Background\test_background_8bit.tif'
+trees_path = r'C:\DeepLearning_Local\+Projekte\SyntheticImageCreation\Code\Example_Tree_Data\8bit'
+folder_name = 'test'
 ##MIT BODO
 label_dictionary = {'background': 0,
                     "BI": 1,
@@ -51,7 +51,7 @@ single_cluster_images = 5
 border_images = 5
 dense_images = 5
 
-path = r'C:\DeepLearning_Local\+Daten\+Synthetic_Images'
+path = r'C:\DeepLearning_Local\temp\test'
 
 fill_with_same_tree = True
 verbose = False
@@ -178,7 +178,7 @@ def create_images(type_to_number, tree_list, main_trees):
         start = time()
         results = pool.starmap(sparse_image, zip(range(sparse_images), repeat(verbose), repeat(fill_with_same_tree),
                                                  repeat(type_to_number), repeat(tree_list)))
-        results = unpack_results(results, sparse_images)
+        results = unpack_results(results)
         labels_and_paths += results[0]
         store_results(results[1:], path=path / (folder_name + '/Sparse'))
         print(f'{sparse_images} sparse images have been created in {time() - start:.2f} seconds.\n')
@@ -201,7 +201,7 @@ def create_images(type_to_number, tree_list, main_trees):
             results = pool.starmap(single_cluster_image, zip(range(single_cluster_images),
                                                              repeat(verbose), repeat(fill_with_same_tree),
                                                              repeat(type_to_number), repeat(tree_list)))
-        results = unpack_results(results, single_cluster_images)
+        results = unpack_results(results)
         labels_and_paths += results[0]
         store_results(results[1:], path=path / (folder_name + '/Single_cluster'))
         main_trees = tree_list
@@ -225,7 +225,7 @@ def create_images(type_to_number, tree_list, main_trees):
             results = pool.starmap(border_image, zip(range(border_images),
                                                      repeat(verbose), repeat(fill_with_same_tree),
                                                      repeat(type_to_number), repeat(tree_list)))
-        results = unpack_results(results, border_images)
+        results = unpack_results(results)
         labels_and_paths += results[0]
         store_results(results[1:], path=path / (folder_name + '/Border'))
         main_trees = tree_list
@@ -249,7 +249,7 @@ def create_images(type_to_number, tree_list, main_trees):
             results = pool.starmap(dense_image, zip(range(dense_images),
                                                     repeat(verbose), repeat(fill_with_same_tree),
                                                     repeat(type_to_number), repeat(tree_list)))
-        results = unpack_results(results, dense_images)
+        results = unpack_results(results)
         labels_and_paths += results[0]
         store_results(results[1:], path=path / (folder_name + '/Dense'))
         main_trees = tree_list
@@ -334,5 +334,4 @@ if __name__ == '__main__':
 # functions: - option to disable multiprocessing
 #
 # issues:   - clusters are placed at random, without considering free area
-#           - percentage of background in overview sometimes over 100%
-#           - blue/pink fields
+#           - blue/pink pixel

@@ -215,7 +215,7 @@ def fill_contours(arr):
                    np.maximum.accumulate(arr, 0)], axis=0)
 
 
-def unpack_results(result, image_count):
+def unpack_results(result):
     """Unpacks the results returned from the multiprocessing Pool-function,
     running several instances of image creation at the same time."""
     labels_and_paths = []
@@ -245,12 +245,13 @@ def unpack_results(result, image_count):
             else:
                 tot_tree_types_dist_no_back[k] += tree_types_dist_no_back[k]
 
-        tot_tree_types_dist['background'] += tree_types_dist['background']
+    tot_tree_types_dist_sum = np.sum(list(tot_tree_types_dist.values()))
+    tot_tree_types_dist_no_back_sum = np.sum(list(tot_tree_types_dist_no_back.values()))
 
     for k in list(tot_tree_types.keys()):
-        tot_tree_types_dist[k] = np.divide(tot_tree_types_dist[k], image_count).round(decimals=3)
-        tot_tree_types_dist_no_back[k] = np.divide(tot_tree_types_dist_no_back[k], image_count).round(decimals=3)
-    tot_tree_types_dist['background'] = np.divide(tot_tree_types_dist['background'], image_count).round(decimals=3)
+        tot_tree_types_dist[k] = np.round(tot_tree_types_dist[k] / tot_tree_types_dist_sum, 2)
+        tot_tree_types_dist_no_back[k] = np.round(tot_tree_types_dist_no_back[k] / tot_tree_types_dist_no_back_sum, 2)
+    tot_tree_types_dist['background'] = np.round(tot_tree_types_dist['background'] / tot_tree_types_dist_sum, 2)
 
     return labels_and_paths, tot_trees, tot_tree_types, tot_tree_types_dist, tot_tree_types_dist_no_back
 
