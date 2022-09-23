@@ -120,7 +120,11 @@ def get_trees(files_path, file_type=None):
     files = get_files(files_path, file_type)
     tree_types = ['background']
     for file in files:
-        tree_type = str(file).rsplit('\\', 1)[-1].rsplit('/', 1)[-1].rsplit('_', 1)[0].rsplit('_', 1)[1].upper()
+        tree_type = str(file).rsplit('\\', 1)[-1].rsplit('/', 1)[-1].rsplit('_', 1)[0]
+        if '_' in tree_type:
+            tree_type = tree_type.rsplit('_', 1)[1].upper()
+        else:
+            tree_type = tree_type.upper()
         if tree_type in tree_type_grouping.keys():
             tree_type = tree_type_grouping[tree_type]
         else:
@@ -434,22 +438,20 @@ def tree_type_distribution(back=True):
                 back -- if the background pixels should be considered when calculating the distribution
     """
     tree_type_area = {}
-    area = 0
     for number in tree_type_counter.keys():
         label = type_to_number[number]
         label_area = np.sum(mask == label)
         tree_type = number_to_type[label]
         tree_type_area[tree_type] = label_area
-        area += label_area
     if back:
         label = type_to_number['background']
         label_area = np.sum(mask == label)
-        tree_type = number_to_type[label]
-        tree_type_area[tree_type] = label_area
-        area += label_area
+        tree_type_area['background'] = label_area
+
+    area = np.sum(list(tree_type_area.values()))
     for label in tree_type_area:
         tree_type_area[label] = np.round(tree_type_area[label] / area, 2)
-
+    print(tree_type_area)
     return tree_type_area
 
 
